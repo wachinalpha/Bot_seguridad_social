@@ -4,7 +4,25 @@
             "numero": "24714",
             "nombre": "Sistema Integrado de Jubilaciones y Pensiones",
             "url": "https://www.argentina.gob.ar/normativa/nacional/ley-24714-39880/actualizacion",
-            "año": 1996
+            "año": 1996,
+            "categoria": "Jubilaciones y Pensiones",
+            "descripcion_breve": "Regula el sistema integrado de jubilaciones y pensiones, estableciendo requisitos y modalidades de acceso a prestaciones previsionales."
+        },
+        {
+            "numero": "24557",
+            "nombre": "Riesgos del Trabajo",
+            "url": "https://www.argentina.gob.ar/normativa/nacional/ley-24557-27971/texto",
+            "año": 1995,
+            "categoria": "Riesgos del Trabajo",
+            "descripcion_breve": "Establece el régimen de riesgos del trabajo, cobertura de contingencias y prestaciones en especie y dinerarias."
+        },
+        {
+            "numero": "23660",
+            "nombre": "Obras Sociales",
+            "url": "https://www.argentina.gob.ar/normativa/nacional/ley-23660-20645/texto",
+            "año": 1988,
+            "categoria": "Obras Sociales",
+            "descripcion_breve": "Regula el sistema de obras sociales, sus obligaciones, prestaciones médico-asistenciales y cobertura."
         }
     ]
 }
