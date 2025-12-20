@@ -37,6 +37,14 @@ class Settings(BaseSettings):
     max_retries: int = 3
     request_timeout: int = 30
     
+    # API Server Configuration
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
+    api_cors_origins: list[str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"]
+    api_prefix: str = "/api/v1"
+    api_title: str = "Legal RAG API"
+    api_version: str = "1.0.0"
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Create directories if they don't exist

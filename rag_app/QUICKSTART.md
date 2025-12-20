@@ -1,6 +1,6 @@
-# Quick Start con Anses1.md (Offline Mode)
+# Quick Start - Bot Seguridad Social
 
-Como las páginas del gobierno están caídas, usa este método para probar el sistema con el archivo Markdown que ya tenés.
+Guía rápida para poner en marcha el sistema RAG con FastAPI + React.
 
 ## 🚀 Paso a Paso Rápido
 
@@ -28,6 +28,7 @@ pip install -r requirements.txt
 
 ```bash
 # Desde el root del proyecto
+cd ..
 python -m rag_app.scripts.setup_from_md
 ```
 
@@ -37,19 +38,32 @@ Este script:
 - ✅ Genera embedding con Gemini
 - ✅ Lo indexa en ChromaDB
 
-### 4. Probar el Sistema
+### 4. Correr el Backend (FastAPI)
 
 ```bash
-# Test de performance
-python -m rag_app.tests.audit_performance
-
-# Interfaz web
-streamlit run rag_app/main.py
+cd rag_app
+python api_main.py
 ```
+
+El backend estará disponible en:
+- API: http://localhost:8000
+- Documentación: http://localhost:8000/docs
+
+### 5. Correr el Frontend (React)
+
+En otra terminal:
+
+```bash
+cd front
+npm install
+npm run dev
+```
+
+El frontend estará disponible en http://localhost:5173
 
 ## 📝 Consultas de Ejemplo
 
-Una vez en el UI de Streamlit, podés hacer preguntas como:
+Una vez en la aplicación web, podés hacer preguntas como:
 - "¿Cuáles son los requisitos para la jubilación?"
 - "Explicame el sistema de seguridad social"
 - "¿Qué documentación necesito para tramitar la jubilación?"
@@ -65,6 +79,12 @@ Asegurate que el archivo esté en alguna de estas ubicaciones.
 
 ### Error: "GEMINI_API_KEY not found"
 Verificá que el archivo `.env` existe en `rag_app/` con tu API key.
+
+### Error: "Port 8000 already in use"
+Matá el proceso que está usando el puerto:
+```bash
+lsof -ti:8000 | xargs kill -9
+```
 
 ## 💡 Cuando las URLs vuelvan
 

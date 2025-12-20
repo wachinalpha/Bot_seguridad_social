@@ -174,3 +174,48 @@ class ChromaAdapter:
             Number of documents
         """
         return self.collection.count()
+    
+    def get_all_document_ids(self) -> List[str]:
+        """
+        Get list of all document IDs in the store.
+        
+        Returns:
+            List of document IDs
+        """
+        try:
+            # Get all documents without filtering
+            results = self.collection.get()
+            return results['ids'] if results['ids'] else []
+        except Exception as e:
+            logger.error(f"Error retrieving all document IDs: {e}")
+            return []
+    
+    def delete_all_documents(self) -> int:
+        """
+        Delete all documents from the vector store.
+        
+        Returns:
+            Number of documents deleted
+        """
+        try:
+            # Get count before deletion
+            count = self.count_documents()
+            
+            if count == 0:
+                logger.info("No documents to delete")
+                return 0
+            
+            # Get all IDs
+            all_ids = self.get_all_document_ids()
+            
+            if all_ids:
+                # Delete all documents
+                self.collection.delete(ids=all_ids)
+                logger.info(f"Deleted all {count} documents from vector store")
+            
+            return count
+            
+        except Exception as e:
+            logger.error(f"Error deleting all documents: {e}")
+            raise
+
