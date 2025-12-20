@@ -59,14 +59,14 @@ class RetrievalService:
             law_doc = similar_docs[0]  # Use most relevant law
             logger.info(f"Found relevant law: {law_doc.titulo}")
             
-            # Step 3: Get or create cache
+            # Step 3: Get or create cache (may return None on Free Tier)
             logger.info("Step 3: Getting or creating cache")
             cache_session = self.contextualizer.get_or_create_cache(law_doc)
-            cache_was_reused = not cache_session.is_expired
+            cache_was_reused = cache_session is not None and not cache_session.is_expired
             
-            # Step 4: Generate answer
-            logger.info("Step 4: Generating answer with cached context")
-            answer = self.contextualizer.generate_answer(cache_session, user_query)
+            # Step 4: Generate answer (with or without cache)
+            logger.info("Step 4: Generating answer")
+            answer = self.contextualizer.generate_answer(cache_session, user_query, law_doc)
             
             # Calculate response time
             response_time_ms = (time.time() - start_time) * 1000
@@ -75,9 +75,9 @@ class RetrievalService:
             result = QueryResult(
                 answer=answer,
                 law_document=law_doc,
-                confidence_score=1.0,  # Could be enhanced with similarity score
+                confidence_score=1.0,
                 cache_used=cache_was_reused,
-                cache_id=cache_session.cache_id,
+                cache_id=cache_session.cache_id if cache_session else None,
                 response_time_ms=response_time_ms
             )
             
@@ -114,12 +114,12 @@ class RetrievalService:
                 logger.warning(f"Law {law_id} not found")
                 return self._create_error_result(f"Ley {law_id} no encontrada en la base de datos")
             
-            # Get or create cache
+            # Get or create cache (may return None on Free Tier)
             cache_session = self.contextualizer.get_or_create_cache(law_doc)
-            cache_was_reused = not cache_session.is_expired
+            cache_was_reused = cache_session is not None and not cache_session.is_expired
             
-            # Generate answer
-            answer = self.contextualizer.generate_answer(cache_session, user_query)
+            # Generate answer (with or without cache)
+            answer = self.contextualizer.generate_answer(cache_session, user_query, law_doc)
             
             # Calculate response time
             response_time_ms = (time.time() - start_time) * 1000
@@ -129,7 +129,7 @@ class RetrievalService:
                 law_document=law_doc,
                 confidence_score=1.0,
                 cache_used=cache_was_reused,
-                cache_id=cache_session.cache_id,
+                cache_id=cache_session.cache_id if cache_session else None,
                 response_time_ms=response_time_ms
             )
             

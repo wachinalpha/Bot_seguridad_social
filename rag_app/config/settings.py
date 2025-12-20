@@ -1,15 +1,17 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 from typing import Optional
+import os
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(Path(__file__).parent.parent / ".env"),  # Explicitly rag_app/.env
         env_file_encoding="utf-8",
-        case_sensitive=False
+        case_sensitive=False,
+        extra="ignore"  # Ignore extra fields like groq_key
     )
     
     # API Keys
@@ -17,7 +19,7 @@ class Settings(BaseSettings):
     
     # Model Configuration
     embedding_model: str = "models/text-embedding-004"
-    llm_model: str = "models/gemini-1.5-pro"
+    llm_model: str = "gemini-2.5-flash"  # Gemini 2.5 con soporte completo de caching
     cache_ttl_minutes: int = 60
     
     # Paths

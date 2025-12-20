@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class GeminiCacheManager:
-    """Adapter for managing Gemini API context caching."""
+    """Adapter for managing Gemini API context caching with Free Tier fallback."""
     
     def __init__(self, api_key: str = None):
         """
@@ -25,6 +25,7 @@ class GeminiCacheManager:
         genai.configure(api_key=api_key)
         self.model_name = settings.llm_model
         self.cache_ttl_minutes = settings.cache_ttl_minutes
+        self.caching_available = True  # Flag to track if caching is available
         logger.info(f"Initialized GeminiCacheManager with model: {self.model_name}")
     
     def get_or_create_cache(self, law_doc: LawDocument) -> CacheSession:
@@ -104,8 +105,14 @@ class GeminiCacheManager:
             logger.warning(f"Error finding active cache: {e}")
             return None
     
-    def _create_cache(self, law_doc: LawDocument, content: str, content_hash: str) -> CacheSession:
-        """Create a new cache in Gemini API."""
+    def _create_cache(self, law_doc: LawDocument, content: str, content_hash: str) -> Optional[CacheSession]:
+        """Create a new cache in Gemini API (or None if caching unavailable)."""
+        
+        # Check if caching is available
+        if not self.caching_available:
+            logger.info("Caching disabled (Free Tier). Skipping cache creation.")
+            return None
+        
         try:
             # Prepare the system instruction
             system_instruction = f"""Eres un asistente experto en leyes de Seguridad Social de Argentina.
@@ -141,31 +148,64 @@ Siempre cita los artículos específicos cuando sea relevante."""
             return cache_session
             
         except Exception as e:
+            error_msg = str(e)
+            
+            # Detect Free Tier caching limit
+            if "429" in error_msg and "TotalCachedContentStorageTokensPerModelFreeTier" in error_msg:
+                logger.warning("⚠️  Context caching not available (Free Tier limit=0). Disabling caching globally.")
+                self.caching_available = False
+                return None
+            
             logger.error(f"Error creating cache: {e}")
             raise
     
-    def generate_answer(self, cache_session: CacheSession, query: str) -> str:
+    def generate_answer(self, cache_session: Optional[CacheSession], query: str, law_doc: LawDocument) -> str:
         """
-        Generate answer to a query using the cached context.
+        Generate answer to a query (with or without cached context).
         
         Args:
-            cache_session: Active cache session
+            cache_session: Active cache session (None if caching unavailable)
             query: User's question
+            law_doc: Law document for fallback mode
             
         Returns:
             Generated answer from the LLM
         """
         try:
-            # Create model from cache
-            model = genai.GenerativeModel.from_cached_content(
-                cached_content=cache_session.cache_id
-            )
+            # Mode 1: Use cache if available
+            if cache_session is not None:
+                model = genai.GenerativeModel.from_cached_content(
+                    cached_content=cache_session.cache_id
+                )
+                response = model.generate_content(query)
+                logger.info(f"Generated answer using cache {cache_session.cache_id}")
+                return response.text
             
-            # Generate response
-            response = model.generate_content(query)
-            
-            logger.info(f"Generated answer using cache {cache_session.cache_id}")
-            return response.text
+            # Mode 2: Fallback to direct model call (Free Tier)
+            else:
+                logger.info("Generating answer without cache (Free Tier mode)")
+                
+                # Read content directly
+                content = Path(law_doc.file_path).read_text(encoding='utf-8')
+                
+                # Create model with system instruction
+                system_instruction = f"""Eres un asistente experto en leyes de Seguridad Social de Argentina.
+
+Tienes acceso al texto completo de la siguiente ley:
+- Título: {law_doc.titulo}
+- Número: {law_doc.metadata.get('numero', 'N/A')}
+
+Tu trabajo es responder preguntas sobre esta ley de manera precisa y profesional.
+Siempre cita los artículos específicos cuando sea relevante."""
+                
+                model = genai.GenerativeModel(
+                    model_name=self.model_name,
+                    system_instruction=system_instruction
+                )
+                
+                # Generate response with full context
+                response = model.generate_content([content, query])
+                return response.text
             
         except Exception as e:
             logger.error(f"Error generating answer: {e}")

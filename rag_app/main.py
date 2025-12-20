@@ -167,7 +167,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style='text-align: center; color: gray;'>
-        Desarrollado con ❤️ usando Gemini API, Docling, y ChromaDB | Arquitectura Hexagonal
+        Desarrollado por Exdata
     </div>
     """, unsafe_allow_html=True)
 

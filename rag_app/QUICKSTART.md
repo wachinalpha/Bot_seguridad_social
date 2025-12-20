@@ -12,8 +12,14 @@ cd rag_app
 echo "GEMINI_API_KEY=tu_api_key_aqui" > .env
 ```
 
-### 2. Instalar Dependencias
+### 2. Instalar Dependencias con uv
 
+```bash
+# uv instalará automáticamente desde pyproject.toml
+uv sync
+```
+
+O si preferís pip tradicional:
 ```bash
 pip install -r requirements.txt
 ```
