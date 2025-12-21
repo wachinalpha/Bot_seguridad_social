@@ -1,6 +1,6 @@
 # Bot Seguridad Social Argentina 🇦🇷
 
-Asistente legal basado en RAG (Retrieval Augmented Generation) para responder consultas sobre la seguridad social Argentina. Utiliza Google Gemini API con Context Caching, ChromaDB para almacenamiento vectorial, e IBM Docling para procesamiento de documentos.
+Promotor de Seguridad Social basado en RAG (Retrieval Augmented Generation) para responder consultas sobre la seguridad social Argentina. Utiliza Google Gemini API con Context Caching, ChromaDB para almacenamiento vectorial, e IBM Docling para procesamiento de documentos.
 
 ## 📋 Tabla de Contenidos
 
