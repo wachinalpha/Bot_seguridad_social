@@ -1,6 +1,25 @@
 # Bot Seguridad Social Argentina 🇦🇷
 
+[![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688.svg)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Promotor de Seguridad Social basado en RAG (Retrieval Augmented Generation) para responder consultas sobre la seguridad social Argentina. Utiliza Google Gemini API con Context Caching, ChromaDB para almacenamiento vectorial, e IBM Docling para procesamiento de documentos.
+
+## 📚 Documentación
+
+- **[Inicio Rápido](rag_app/QUICKSTART.md)** - Guía rápida para comenzar en 5 minutos
+- **[FAQ](FAQ.md)** - Preguntas frecuentes y respuestas
+- **[Guía de Desarrollo](DEVELOPMENT.md)** - Flujo de trabajo y mejores prácticas
+- **[Guía de Deployment](DEPLOYMENT.md)** - Opciones de despliegue en producción
+- **[Arquitectura Técnica](rag_app/docs/TECHNICAL_ARCHITECTURE.md)** - Detalles de implementación
+- **[API Documentation](rag_app/docs/API.md)** - Referencia de endpoints
+- **[Cómo Contribuir](CONTRIBUTING.md)** - Guía para contribuidores
+- **[Roadmap](ROADMAP.md)** - Plan de desarrollo futuro
+- **[Changelog](CHANGELOG.md)** - Historial de versiones
+- **[Security Policy](SECURITY.md)** - Política de seguridad
 
 ## 📋 Tabla de Contenidos
 
@@ -12,6 +31,8 @@ Promotor de Seguridad Social basado en RAG (Retrieval Augmented Generation) para
   - [Frontend (React + TypeScript)](#2-frontend-react--typescript)
 - [Ejecución de la Aplicación](#-ejecución-de-la-aplicación)
 - [Estructura de Carpetas](#-estructura-de-carpetas)
+- [Contribuir](#-contribuir)
+- [Licencia](#-licencia)
 - [Troubleshooting](#-troubleshooting)
 
 ---
@@ -85,7 +106,8 @@ pip install uv
 #### Paso 1.1: Clonar el repositorio (si aún no lo hiciste)
 
 ```bash
-cd /home/emiliano/Documentos/Exdata/Bot_seguridad_social
+git clone https://github.com/wachinalpha/Bot_seguridad_social.git
+cd Bot_seguridad_social
 ```
 
 #### Paso 1.2: Configurar variables de entorno
@@ -340,6 +362,46 @@ front/
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `ingestion_service.py` | Toma una ley → chunk → embedding → guarda en base vectorial. Incluye versionado e idempotencia.                               |
 | `retrieval_service.py` | Dada una consulta → busca los chunks relevantes → construye contexto → genera respuesta con LLM. |
+
+---
+
+## 🤝 Contribuir
+
+¡Las contribuciones son bienvenidas! Este proyecto está abierto a mejoras, correcciones de bugs, y nuevas funcionalidades.
+
+### Cómo Contribuir
+
+1. **Fork** el repositorio
+2. **Crea una rama** para tu feature (`git checkout -b feature/AmazingFeature`)
+3. **Commit** tus cambios (`git commit -m 'feat: Add some AmazingFeature'`)
+4. **Push** a la rama (`git push origin feature/AmazingFeature`)
+5. **Abre un Pull Request**
+
+Por favor lee nuestra [Guía de Contribución](CONTRIBUTING.md) para más detalles sobre:
+- Estándares de código
+- Proceso de desarrollo
+- Arquitectura del proyecto
+- Testing y debugging
+
+### Código de Conducta
+
+Este proyecto adhiere a un [Código de Conducta](CODE_OF_CONDUCT.md). Al participar, se espera que mantengas este código.
+
+---
+
+## 📄 Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
+
+```
+MIT License
+
+Copyright (c) 2025 Bot Seguridad Social Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction...
+```
 
 ---
 
