@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ==========================================
   # Backend: FastAPI + RAG
@@ -49,7 +47,7 @@ services:
       target: development
     container_name: bot-seguridad-frontend
     ports:
-      - "5173:5173"
+      - "5173:3000"
     volumes:
       # Code for hot module replacement
       - ./front:/app
@@ -109,10 +107,10 @@ networks:
 #   docker compose run --rm ingest
 #
 # Reset database for current version:
-#   docker compose run --rm ingest python -m rag_app.scripts.reset_db --force
+#   docker compose run --rm ingest uv run python -m rag_app.scripts.reset_db --force
 #
-# Ingest from markdown:
-#   docker compose run --rm ingest python -m rag_app.scripts.setup_from_md
+# Ingest single law:
+#   docker compose run --rm ingest uv run python -m rag_app.scripts.ingest_single_law 24714
 #
 # Change corpus version (creates new isolated data):
 #   CORPUS_VERSION=v2 docker compose run --rm ingest

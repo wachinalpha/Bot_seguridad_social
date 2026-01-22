@@ -6,11 +6,16 @@ Promotor de Seguridad Social basado en RAG (Retrieval Augmented Generation) para
 
 - [Tecnologías Utilizadas](#-tecnologías-utilizadas)
 - [Arquitectura del Proyecto](#-arquitectura-del-proyecto)
-- [Requisitos Previos](#-requisitos-previos)
-- [Instalación y Configuración](#-instalación-y-configuración)
-  - [Backend (RAG App)](#1-backend-rag-app)
-  - [Frontend (React + TypeScript)](#2-frontend-react--typescript)
-- [Ejecución de la Aplicación](#-ejecución-de-la-aplicación)
+- [🐳 Quick Start con Docker (Recomendado)](#-quick-start-con-docker-recomendado)
+  - [Instalación Básica](#instalación-básica)
+  - [Ingesta de Documentos](#ingesta-de-documentos)
+  - [Sistema de Versionado](#sistema-de-versionado)
+  - [Comandos Útiles](#comandos-útiles-docker)
+  - [Troubleshooting Docker](#troubleshooting-docker)
+- [💻 Instalación Manual (Desarrollo Local)](#-instalación-manual-desarrollo-local)
+  - [Requisitos Previos](#requisitos-previos)
+  - [Instalación y Configuración](#instalación-y-configuración)
+  - [Ejecución de la Aplicación](#ejecución-de-la-aplicación)
 - [Estructura de Carpetas](#-estructura-de-carpetas)
 - [Troubleshooting](#-troubleshooting)
 
@@ -55,7 +60,474 @@ Bot_seguridad_social/
 
 ---
 
-## 📦 Requisitos Previos
+## 🐳 Quick Start con Docker (Recomendado)
+
+La forma más fácil de ejecutar la aplicación es usando Docker. No necesitás instalar Python, Node.js ni dependencias manualmente.
+
+### Requisitos
+
+- **Docker** y **Docker Compose** instalados ([Instalar Docker](https://docs.docker.com/get-docker/))
+- **API Key de Google Gemini** ([Obtener aquí](https://aistudio.google.com/app/apikey))
+
+### Instalación Básica
+
+#### 1. Configurar variables de entorno
+
+Copiá el template de configuración y editalo con tu API key:
+
+```bash
+cp .env.example .env
+```
+
+Editá el archivo `.env` y agregá tu `GEMINI_API_KEY`:
+
+```bash
+# .env
+GEMINI_API_KEY=tu_api_key_de_gemini_aqui
+
+# Configuración opcional (valores por defecto)
+CORPUS_VERSION=v1
+HOST=0.0.0.0
+PORT=8000
+```
+
+#### 2. Levantar los servicios
+
+```bash
+# Construir y levantar backend + frontend
+docker compose up --build -d
+
+# Ver logs en tiempo real
+docker compose logs -f
+```
+
+Esto iniciará:
+- **Backend (FastAPI + RAG):** http://localhost:8000
+- **Frontend (React):** http://localhost:5173
+- **API Docs:** http://localhost:8000/docs
+
+#### 3. Verificar que los servicios están corriendo
+
+```bash
+docker compose ps
+```
+
+Deberías ver ambos contenedores como `Up` y el backend como `healthy`:
+
+```
+NAME                     STATUS
+bot-seguridad-backend    Up (healthy)
+bot-seguridad-frontend   Up
+```
+
+---
+
+### Ingesta de Documentos
+
+El sistema necesita documentos legales indexados para funcionar. Hay dos formas de ingestar documentos:
+
+#### Opción A: Ingestar todas las leyes configuradas
+
+Procesa todas las leyes definidas en `rag_app/config/leyes_config.json`:
+
+```bash
+docker compose run --rm ingest
+```
+
+Esto procesará aproximadamente **11 leyes** y puede tardar varios minutos. Verás logs como:
+
+```
+Processing: Ley 24714 - Régimen de Asignaciones Familiares
+✓ ley_24714 processed successfully
+Processing: Ley 24013 - Ley Nacional de Empleo
+✓ ley_24013 processed successfully
+...
+✓ Database setup completed successfully!
+Vector database contains 11 documents
+```
+
+**Leyes incluidas:**
+1. Ley 24714 - Régimen de Asignaciones Familiares
+2. Ley 19032 - Régimen de jubilaciones FFAA
+3. Ley 24013 - Ley Nacional de Empleo
+4. Ley 27548 - Programa ATP
+5. Ley 27561 - Ley de Solidaridad Social
+6. Ley 24241 - Sistema Integrado de Jubilaciones y Pensiones
+7. Ley 27725 - Actividades Esenciales en Infraestructura Crítica
+8. Ley 27726 - Programa de Alivio Fiscal
+9. Decreto 1667/2012 - Transferencia ANSES
+10. Decreto 1602/2009 - Asignación Universal por Hijo
+11. Decreto 593/2016 - Fondo de Reparación Histórica
+
+#### Opción B: Ingestar una sola ley específica
+
+Para testing o desarrollo, podés procesar una ley individual:
+
+```bash
+# Ver lista de leyes disponibles
+docker compose run --rm ingest uv run python -m rag_app.scripts.ingest_single_law --list
+
+# Ingestar una ley específica por su número
+docker compose run --rm ingest uv run python -m rag_app.scripts.ingest_single_law 24714
+```
+
+> **💡 Nota:** Es importante usar `uv run python` en lugar de solo `python` para que las dependencias estén disponibles.
+
+---
+
+### Sistema de Versionado
+
+El sistema implementa **versionado de corpus** con aislamiento físico. Esto permite mantener múltiples versiones de la base de datos simultáneamente.
+
+#### Estructura de Datos Versionados
+
+```
+data/
+├── chroma_db/
+│   ├── v1/              # Versión 1 del corpus
+│   │   └── chroma.sqlite3
+│   ├── v2/              # Versión 2 del corpus (si existe)
+│   │   └── chroma.sqlite3
+│   └── ...
+├── processed/
+│   ├── v1/              # Documentos procesados v1
+│   │   ├── ley_24714.md
+│   │   └── ...
+│   └── v2/              # Documentos procesados v2
+├── corpus_raw/          # Documentos fuente (compartidos)
+└── logs/                # Logs de la aplicación
+```
+
+#### Crear una Nueva Versión
+
+Para crear una nueva versión del corpus (ej: con leyes actualizadas o diferentes parámetros):
+
+```bash
+# Crear versión v2 con todas las leyes
+CORPUS_VERSION=v2 docker compose run --rm ingest
+
+# O crear v2 con solo una ley para testing
+CORPUS_VERSION=v2 docker compose run --rm ingest uv run python -m rag_app.scripts.ingest_single_law 24714
+
+# Usar versión v2 en el backend
+CORPUS_VERSION=v2 docker compose up -d backend
+```
+
+**Ejemplo práctico:**
+```bash
+# 1. Crear v2 solo con Ley 24714 (Asignaciones Familiares)
+CORPUS_VERSION=v2 docker compose run --rm ingest uv run python -m rag_app.scripts.ingest_single_law 24714
+
+# 2. Verificar que v2 tiene 1 documento
+docker compose exec backend python -c "from rag_app.config.settings import Settings; from rag_app.adapters.stores.chroma_adapter import ChromaAdapter; s = Settings(corpus_version='v2'); ca = ChromaAdapter(); print(f'v2 docs: {ca.count_documents()}')"
+
+# 3. v1 sigue teniendo 11 documentos (sin afectar)
+docker compose exec backend python -c "from rag_app.adapters.stores.chroma_adapter import ChromaAdapter; print(f'v1 docs: {ChromaAdapter().count_documents()}')"
+```
+
+#### Listar Versiones Disponibles
+
+```bash
+ls -lh data/chroma_db/
+# Output:
+# v1/
+# v2/
+# v3/
+```
+
+#### Cambiar Entre Versiones
+
+Para cambiar la versión activa del corpus en el backend:
+
+**Paso 1:** Editá el archivo `.env` y cambiá la variable `CORPUS_VERSION`:
+
+```bash
+# .env
+CORPUS_VERSION=v2  # Cambiar de v1 a v2 (o la versión que quieras)
+```
+
+**Paso 2:** Recreá el contenedor backend para aplicar los cambios:
+
+```bash
+# ✅ CORRECTO: Recrea el contenedor con nuevas variables de entorno
+docker compose up -d backend
+
+# ❌ INCORRECTO: restart NO recarga variables de entorno
+# docker compose restart backend
+```
+
+**Paso 3:** Verificá que el cambio se aplicó correctamente:
+
+```bash
+# Ver logs del backend
+docker compose logs backend --tail=20
+
+# Deberías ver algo como:
+# "Initialized ChromaDB at /app/data/chroma_db/v2"
+# "Collection: legal_documents_v2 (version: v2)"
+# "📊 Indexed documents: 1"  (o el número de docs en v2)
+
+# Verificar documents endpoint
+curl http://localhost:8000/api/v1/documents | jq '.documents | length'
+```
+
+**Paso 4:** Refrescá el frontend (F5 en el navegador) para ver los cambios
+
+> **⚠️ IMPORTANTE:**
+> 
+> - `docker compose restart` **NO recarga** las variables de entorno del archivo `.env`
+> - **Siempre usá** `docker compose up -d` para aplicar cambios en `.env`
+> - El frontend necesita un refresh (F5) para actualizar el contador de documentos
+
+#### Ventajas del Versionado
+
+- ✅ **Aislamiento completo:** Cada versión tiene su propia base de datos
+- ✅ **Rollback fácil:** Volvé a una versión anterior cambiando `CORPUS_VERSION`
+- ✅ **Testing:** Probá nuevos parámetros sin afectar producción
+- ✅ **Trazabilidad:** Cada versión mantiene su historial de procesamiento
+
+---
+
+### Comandos Útiles Docker
+
+#### Gestión de Servicios
+
+```bash
+# Levantar servicios
+docker compose up -d
+
+# Ver logs en tiempo real
+docker compose logs -f backend
+docker compose logs -f frontend
+
+# Detener servicios
+docker compose stop
+
+# Detener y eliminar contenedores
+docker compose down
+
+# Detener y eliminar contenedores + volúmenes
+docker compose down -v  # ⚠️ Esto borrará los datos!
+```
+
+#### Verificar Estado de la Base de Datos
+
+```bash
+# Cantidad de documentos indexados
+docker compose exec backend python -c "from rag_app.adapters.stores.chroma_adapter import ChromaAdapter; print(f'Documentos: {ChromaAdapter().count_documents()}')"
+
+# IDs de todos los documentos
+docker compose exec backend python -c "from rag_app.adapters.stores.chroma_adapter import ChromaAdapter; print(ChromaAdapter().get_all_document_ids())"
+```
+
+#### Resetear Base de Datos
+
+```bash
+# Modo interactivo (pide confirmación)
+docker compose run --rm ingest python -m rag_app.scripts.reset_db
+
+# Modo force (sin confirmación)
+docker compose run --rm ingest python -m rag_app.scripts.reset_db --force
+
+# Después de resetear, re-ingestar
+docker compose run --rm ingest
+```
+
+#### Reconstruir Imágenes
+
+Si cambiaste dependencias o Dockerfiles:
+
+```bash
+# Reconstruir todas las imágenes
+docker compose build --no-cache
+
+# Reconstruir solo el backend
+docker compose build --no-cache backend
+
+# Reconstruir solo el frontend
+docker compose build --no-cache frontend
+```
+
+#### Debugging
+
+```bash
+# Acceder a un shell dentro del contenedor backend
+docker compose exec backend bash
+
+# Acceder a un shell dentro del contenedor frontend
+docker compose exec frontend sh
+
+# Ver logs detallados del build
+docker compose build --progress=plain backend
+```
+
+#### Limpieza de Docker
+
+```bash
+# Eliminar contenedores detenidos
+docker compose down
+
+# Eliminar imágenes no utilizadas
+docker image prune
+
+# Eliminar todos los recursos no utilizados
+docker system prune -a
+```
+
+---
+
+### Troubleshooting Docker
+
+#### Error: `GEMINI_API_KEY not found`
+
+**Problema:** El archivo `.env` no existe o no contiene la API key.
+
+**Solución:**
+```bash
+# Verificar que .env existe
+ls -la .env
+
+# Verificar contenido
+cat .env | grep GEMINI_API_KEY
+
+# Si no existe, crear desde template
+cp .env.example .env
+# Editar y agregar tu API key
+```
+
+#### Error: `port is already allocated`
+
+**Problema:** Los puertos 8000 o 5173 ya están en uso.
+
+**Solución:**
+```bash
+# Ver qué proceso está usando el puerto
+sudo lsof -i :8000
+sudo lsof -i :5173
+
+# Matar el proceso o cambiar puertos en docker-compose.yml
+# Opción 1: Matar proceso
+sudo kill -9 <PID>
+
+# Opción 2: Cambiar puertos en docker-compose.yml
+# ports:
+#   - "8001:8000"  # Puerto externo diferente
+```
+
+#### Error: `Backend unhealthy`
+
+**Problema:** El healthcheck del backend falla.
+
+**Solución:**
+```bash
+# Ver logs del backend
+docker compose logs backend
+
+# Verificar que ChromaDB se inicializó correctamente
+docker compose exec backend ls -la /app/data/chroma_db/
+
+# Reiniciar con logs
+docker compose restart backend && docker compose logs -f backend
+```
+
+#### Error: `No documents indexed`
+
+**Problema:** No se ejecutó el proceso de ingesta.
+
+**Solución:**
+```bash
+# Ejecutar ingesta
+docker compose run --rm ingest
+
+# Verificar que los datos se guardaron
+ls -lh data/chroma_db/v1/
+ls -lh data/processed/v1/
+```
+
+#### Frontend no conecta con Backend
+
+**Problema:** CORS o configuración de red.
+
+**Solución:**
+```bash
+# Verificar que VITE_API_URL apunta a localhost
+docker compose logs frontend | grep VITE_API_URL
+
+# Verificar que backend está en la misma red
+docker network inspect bot_seguridad_social_bot-network
+
+# Verificar CORS en logs del backend
+docker compose logs backend | grep CORS
+```
+
+#### Builds muy lentos
+
+**Problema:** Docker está descargando dependencias en cada build.
+
+**Solución:**
+```bash
+# Usar caché de Docker
+docker compose build  # Sin --no-cache
+
+# Verificar que .dockerignore existe
+cat .dockerignore
+
+# Limpiar builder cache si es necesario
+docker builder prune
+```
+
+#### Cambios en el código no se reflejan
+
+**Problema:** Hot reload no funciona o volúmenes mal configurados.
+
+**Solución:**
+```bash
+# Backend: Verificar que el volumen está montado
+docker compose exec backend ls -la /app/rag_app
+
+# Frontend: Verificar Vite HMR
+docker compose logs frontend | grep "HMR"
+
+# Reiniciar con recreación de contenedores
+docker compose up -d --force-recreate
+```
+
+#### Backend sigue mostrando la versión anterior
+
+**Problema:** Cambiaste `CORPUS_VERSION` en `.env` pero el backend sigue usando v1.
+
+**Síntomas:**
+- Logs muestran `Initialized ChromaDB at /app/data/chroma_db/v1`
+- API devuelve el número incorrecto de documentos
+- Frontend muestra documentos de la versión anterior
+
+**Solución:**
+```bash
+# 1. Verificar que .env tiene la versión correcta
+grep CORPUS_VERSION .env
+
+# 2. IMPORTANTE: Usar 'up -d' en lugar de 'restart'
+docker compose up -d backend
+
+# 3. Verificar en los logs que cargó la nueva versión
+docker compose logs backend | grep "ChromaDB at"
+docker compose logs backend | grep "Collection:"
+docker compose logs backend | grep "Indexed documents:"
+
+# 4. Refrescar el frontend (F5 en el navegador)
+```
+
+**¿Por qué pasa esto?**
+- `docker compose restart` reinicia el contenedor pero **NO recarga** las variables de entorno del archivo `.env`
+- `docker compose up -d` recrea el contenedor con las nuevas variables de entorno
+
+---
+
+## 💻 Instalación Manual (Desarrollo Local)
+
+Si preferís ejecutar la aplicación sin Docker (ej: para debugging más profundo), seguí estas instrucciones.
+
+### Requisitos Previos
 
 Antes de comenzar, asegurate de tener instalado:
 
@@ -79,6 +551,10 @@ pip install uv
 ---
 
 ## ⚙️ Instalación y Configuración
+
+> **💡 Nota:** Si estás usando Docker (recomendado), podés saltar esta sección. Ir a [Quick Start con Docker](#-quick-start-con-docker-recomendado).
+
+Esta sección es para desarrollo local sin Docker.
 
 ### 1. Backend (RAG App)
 
