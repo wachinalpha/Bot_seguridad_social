@@ -56,10 +56,11 @@ RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 
 # Copy dependency files
-COPY --chown=appuser:appuser pyproject.toml ./
+COPY --chown=appuser:appuser rag_app/pyproject.toml ./
 
 # Install Python dependencies (no dev dependencies)
-RUN uv sync --no-dev
+# We need to install specifically from the copied toml
+RUN uv pip install --system -r <(uv pip compile pyproject.toml)
 
 # Copy application code
 COPY --chown=appuser:appuser . .
