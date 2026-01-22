@@ -18,6 +18,7 @@ services:
       - ./data/logs:/app/data/logs
       # Code for hot reload (comment out for production)
       - ./rag_app:/app/rag_app
+      - backend_venv:/app/rag_app/.venv   # clave
     env_file:
       - .env
     environment:
@@ -79,6 +80,7 @@ services:
       - ./data/corpus_raw:/app/data/corpus_raw  # Source documents
       # Config for leyes_config.json
       - ./rag_app/config:/app/rag_app/config
+      - backend_venv:/app/rag_app/.venv
     env_file:
       - .env
     environment:
@@ -91,11 +93,15 @@ services:
       - bot-network
     profiles:
       - tools
-    command: uv run python -m rag_app.scripts.setup_db
+    command: uv run python /app/rag_app/scripts/setup_db.py
+
 
 networks:
   bot-network:
     driver: bridge
+
+volumes:
+  backend_venv:
 
 # ==========================================
 # Usage:
@@ -107,10 +113,9 @@ networks:
 #   docker compose run --rm ingest
 #
 # Reset database for current version:
-#   docker compose run --rm ingest uv run python -m rag_app.scripts.reset_db --force
-#
+#   docker compose run --rm ingest uv run python /app/rag_app/scripts/reset_db.py --force
 # Ingest single law:
-#   docker compose run --rm ingest uv run python -m rag_app.scripts.ingest_single_law 24714
+#   docker compose run --rm ingest uv run python /app/rag_app/scripts/ingest_single_law.py 24714
 #
 # Change corpus version (creates new isolated data):
 #   CORPUS_VERSION=v2 docker compose run --rm ingest

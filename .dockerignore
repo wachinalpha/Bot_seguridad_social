@@ -26,6 +26,7 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+rag_app/.venv/
 
 # Node
 node_modules/

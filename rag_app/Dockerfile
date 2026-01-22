@@ -29,13 +29,14 @@ FROM base AS development
 COPY . /app/
 
 # Set working directory
-WORKDIR /app
+WORKDIR /app/rag_app
+
 
 # Copy dependency files if needed
 # (pyproject.toml should already be there from COPY . /app/)
 
 # Install Python dependencies with uv (will create lock if missing)
-RUN cd rag_app && uv sync
+RUN uv sync
 
 # Expose port
 EXPOSE 8000
@@ -45,7 +46,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Run with uvicorn (hot reload enabled)
-CMD ["uv", "run", "uvicorn", "rag_app.api_main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uv", "run", "uvicorn", "api_main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 # Production stage
 FROM base AS production
