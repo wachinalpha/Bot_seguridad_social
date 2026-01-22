@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # Backend: FastAPI + RAG
+  # ==========================================
+  backend:
+    build:
+      context: ./rag_app
+      target: development
+    container_name: bot-seguridad-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persistent data with version isolation
+      - ./data/chroma_db:/app/data/chroma_db
+      - ./data/processed:/app/data/processed
+      - ./data/corpus_raw:/app/data/corpus_raw  # Source documents for traceability
+      - ./data/logs:/app/data/logs
+      # Code for hot reload (comment out for production)
+      - ./rag_app:/app/rag_app
+    env_file:
+      - .env
+    environment:
+      # Paths with version isolation
+      - CHROMA_DB_PATH=/app/data/chroma_db/${CORPUS_VERSION:-v1}
+      - PROCESSED_DOCS_PATH=/app/data/processed/${CORPUS_VERSION:-v1}
+      - CORPUS_RAW_PATH=/app/data/corpus_raw
+      - CORPUS_VERSION=${CORPUS_VERSION:-v1}
+      - HOST=0.0.0.0
+      - PORT=8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - bot-network
+    restart: unless-stopped
+
+  # ==========================================
+  # Frontend: React + Vite
+  # ==========================================
+  frontend:
+    build:
+      context: ./front
+      target: development
+    container_name: bot-seguridad-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      # Code for hot module replacement
+      - ./front:/app
+      # Prevent node_modules conflicts
+      - /app/node_modules
+    environment:
+      # NO API key - frontend calls backend only
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - bot-network
+    restart: unless-stopped
+
+  # ==========================================
+  # Ingest Job (One-off command)
+  # ==========================================
+  ingest:
+    build:
+      context: ./rag_app
+      target: development
+    container_name: bot-seguridad-ingest
+    volumes:
+      # Persistent data with version isolation (shared with backend)
+      - ./data/chroma_db:/app/data/chroma_db
+      - ./data/processed:/app/data/processed
+      - ./data/corpus_raw:/app/data/corpus_raw  # Source documents
+      # Config for leyes_config.json
+      - ./rag_app/config:/app/rag_app/config
+    env_file:
+      - .env
+    environment:
+      # Paths with version isolation
+      - CHROMA_DB_PATH=/app/data/chroma_db/${CORPUS_VERSION:-v1}
+      - PROCESSED_DOCS_PATH=/app/data/processed/${CORPUS_VERSION:-v1}
+      - CORPUS_RAW_PATH=/app/data/corpus_raw
+      - CORPUS_VERSION=${CORPUS_VERSION:-v1}
+    networks:
+      - bot-network
+    profiles:
+      - tools
+    command: python -m rag_app.scripts.setup_db
+
+networks:
+  bot-network:
+    driver: bridge
+
+# ==========================================
+# Usage:
+# ==========================================
+# Development:
+#   docker compose up --build
+#
+# Ingest documents:
+#   docker compose run --rm ingest
+#
+# Reset database for current version:
+#   docker compose run --rm ingest python -m rag_app.scripts.reset_db --force
+#
+# Ingest from markdown:
+#   docker compose run --rm ingest python -m rag_app.scripts.setup_from_md
+#
+# Change corpus version (creates new isolated data):
+#   CORPUS_VERSION=v2 docker compose run --rm ingest
+#
+# List all versions:
+#   ls -l data/chroma_db/
+#
+# Stop services:
+#   docker compose down
+#
+# Remove volumes:
+#   docker compose down -v

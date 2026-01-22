@@ -1,0 +1,25 @@
+# Dependencies (will be installed in container)
+node_modules/
+
+# Build output
+dist/
+
+# Environment files
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# OS files
+.DS_Store
+Thumbs.db

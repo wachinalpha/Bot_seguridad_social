@@ -14,18 +14,27 @@ class ChromaAdapter:
     
     def __init__(self):
         """Initialize ChromaDB client and collection."""
+        # Use resolved path (supports both relative and absolute)
+        chroma_path = settings.chroma_db_path_resolved
+        
         self.client = chromadb.PersistentClient(
-            path=str(settings.chroma_db_path),
+            path=str(chroma_path),
             settings=ChromaSettings(anonymized_telemetry=False)
         )
         
+        # Use versioned collection name for corpus isolation
+        collection_name = settings.chroma_collection_name_versioned
+        
         self.collection = self.client.get_or_create_collection(
-            name=settings.chroma_collection_name,
-            metadata={"description": "Legal documents for RAG system"}
+            name=collection_name,
+            metadata={
+                "description": "Legal documents for RAG system",
+                "corpus_version": settings.corpus_version
+            }
         )
         
-        logger.info(f"Initialized ChromaDB at {settings.chroma_db_path}")
-        logger.info(f"Collection: {settings.chroma_collection_name}")
+        logger.info(f"Initialized ChromaDB at {chroma_path}")
+        logger.info(f"Collection: {collection_name} (version: {settings.corpus_version})")
     
     def save_document(self, law_doc: LawDocument, embedding: List[float]) -> None:
         """

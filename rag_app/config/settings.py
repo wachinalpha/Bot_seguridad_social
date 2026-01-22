@@ -22,13 +22,17 @@ class Settings(BaseSettings):
     llm_model: str = "gemini-2.5-flash"  # Gemini 2.5 con soporte completo de caching
     cache_ttl_minutes: int = 60
     
-    # Paths
+    # Paths (support both relative and absolute for Docker compatibility)
     base_dir: Path = Path(__file__).parent.parent.parent
-    processed_docs_path: Path = base_dir / "data" / "processed"
-    chroma_db_path: Path = base_dir / "data" / "chroma_db"
+    processed_docs_path: str = "data/processed"  # Can be overridden with absolute path
+    chroma_db_path: str = "data/chroma_db"  # Can be overridden with absolute path
+    corpus_raw_path: str = "data/corpus_raw"  # Source documents for traceability
+    
+    # Corpus Versioning for ChromaDB collection isolation
+    corpus_version: str = "v1"
     
     # ChromaDB Configuration
-    chroma_collection_name: str = "legal_documents"
+    chroma_collection_name: str = "legal_documents"  # Base name, will be prefixed with version
     
     # Retrieval Configuration
     top_k_results: int = 3
@@ -45,11 +49,41 @@ class Settings(BaseSettings):
     api_title: str = "Legal RAG API"
     api_version: str = "1.0.0"
     
+    @property
+    def chroma_collection_name_versioned(self) -> str:
+        """Get versioned collection name for ChromaDB isolation."""
+        return f"{self.chroma_collection_name}_{self.corpus_version}"
+    
+    @property
+    def processed_docs_path_resolved(self) -> Path:
+        """Resolve processed docs path (supports both relative and absolute)."""
+        path = Path(self.processed_docs_path)
+        if path.is_absolute():
+            return path
+        return self.base_dir / path
+    
+    @property
+    def chroma_db_path_resolved(self) -> Path:
+        """Resolve ChromaDB path (supports both relative and absolute)."""
+        path = Path(self.chroma_db_path)
+        if path.is_absolute():
+            return path
+        return self.base_dir / path
+    
+    @property
+    def corpus_raw_path_resolved(self) -> Path:
+        """Resolve corpus raw path (supports both relative and absolute)."""
+        path = Path(self.corpus_raw_path)
+        if path.is_absolute():
+            return path
+        return self.base_dir / path
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Create directories if they don't exist
-        self.processed_docs_path.mkdir(parents=True, exist_ok=True)
-        self.chroma_db_path.mkdir(parents=True, exist_ok=True)
+        self.processed_docs_path_resolved.mkdir(parents=True, exist_ok=True)
+        self.chroma_db_path_resolved.mkdir(parents=True, exist_ok=True)
+        self.corpus_raw_path_resolved.mkdir(parents=True, exist_ok=True)
 
 
 # Global settings instance
