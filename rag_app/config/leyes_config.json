@@ -2,11 +2,11 @@
     "leyes": [
         {
             "numero": "24714",
-            "nombre": "Sistema Integrado de Jubilaciones y Pensiones",
+            "nombre": "Régimen de Asignaciones Familiares",
             "url": "https://www.argentina.gob.ar/normativa/nacional/ley-24714-39880/actualizacion",
             "año": 1996,
-            "categoria": "Jubilaciones y Pensiones",
-            "descripcion_breve": "Regula el sistema integrado de jubilaciones y pensiones, estableciendo requisitos y modalidades de acceso a prestaciones previsionales."
+            "categoria": "Asignaciones Familiares",
+            "descripcion_breve": "Regula el régimen de asignaciones familiares para trabajadores en relación de dependencia, beneficiarios del Sistema Integrado Previsional Argentino y beneficiarios de la Prestación por Desempleo."
         },
         {
             "numero": "593-2016",

@@ -8,9 +8,10 @@ WORKDIR /app
 
 # Install system dependencies required by Docling
 RUN apt-get update && apt-get install -y \
-    # Docling dependencies (OpenCV, easyocr)
-    libgl1-mesa-glx \
+    # Docling dependencies (OpenCV, easyocr) - Debian Trixie compatible
+    libgl1 \
     libglib2.0-0 \
+    libgomp1 \
     # Utilities for healthchecks and debugging
     curl \
     wget \
@@ -24,16 +25,17 @@ ENV PATH="/root/.local/bin:$PATH"
 # Development stage
 FROM base AS development
 
-# Copy dependency files
-COPY pyproject.toml ./
-# Copy uv.lock if it exists (from parent directory)
-COPY ../uv.lock ./uv.lock 2>/dev/null || true
+# Copy entire project
+COPY . /app/
 
-# Install Python dependencies with uv
-RUN uv sync --frozen || uv sync
+# Set working directory
+WORKDIR /app
 
-# Copy application code
-COPY . .
+# Copy dependency files if needed
+# (pyproject.toml should already be there from COPY . /app/)
+
+# Install Python dependencies with uv (will create lock if missing)
+RUN cd rag_app && uv sync
 
 # Expose port
 EXPOSE 8000
@@ -55,10 +57,9 @@ RUN useradd -m -u 1000 appuser && \
 
 # Copy dependency files
 COPY --chown=appuser:appuser pyproject.toml ./
-COPY --chown=appuser:appuser ../uv.lock ./uv.lock 2>/dev/null || true
 
 # Install Python dependencies (no dev dependencies)
-RUN uv sync --frozen --no-dev || uv sync --no-dev
+RUN uv sync --no-dev
 
 # Copy application code
 COPY --chown=appuser:appuser . .

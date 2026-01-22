@@ -6,7 +6,8 @@ services:
   # ==========================================
   backend:
     build:
-      context: ./rag_app
+      context: .
+      dockerfile: rag_app/Dockerfile
       target: development
     container_name: bot-seguridad-backend
     ports:
@@ -69,7 +70,8 @@ services:
   # ==========================================
   ingest:
     build:
-      context: ./rag_app
+      context: .
+      dockerfile: rag_app/Dockerfile
       target: development
     container_name: bot-seguridad-ingest
     volumes:
@@ -91,7 +93,7 @@ services:
       - bot-network
     profiles:
       - tools
-    command: python -m rag_app.scripts.setup_db
+    command: uv run python -m rag_app.scripts.setup_db
 
 networks:
   bot-network:
