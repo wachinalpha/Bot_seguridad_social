@@ -1,0 +1,5 @@
+{
+  "name": "Social Security Legal Assistant",
+  "description": "A professional RAG-powered interface for navigating social security laws, featuring document management and intelligent chat based on legal sources.",
+  "requestFramePermissions": []
+}

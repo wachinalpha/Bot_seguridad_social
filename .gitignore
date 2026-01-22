@@ -6,6 +6,15 @@ __pycache__/
 # C extensions
 *.so
 
+rag_app/.env
+Wiki.pdf
+
+Bot_seguridad_social.code-workspace
+
+# Project specific - Data and documents
+data/
+Documentos_Anses/
+
 # Distribution / packaging
 .Python
 build/

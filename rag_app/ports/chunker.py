@@ -1,11 +1,19 @@
-from typing import Protocol, List, Dict
-from rag_app.domain.models import Chunk , Law   
+from typing import Protocol, Tuple
+from rag_app.domain.models import LawDocument
 
-class ChunkerPort(Protocol):
+
+class DocumentProcessorPort(Protocol):
+    """Port for processing legal documents from web URLs to structured markdown."""
     
-    def chunk_law(self,law:Law) -> List[Chunk]:
+    def process_url(self, url: str, law_id: str) -> Tuple[str, str]:
+        """
+        Process a law URL and convert to markdown.
+        
+        Args:
+            url: URL of the legal document
+            law_id: Unique identifier for the law
+            
+        Returns:
+            Tuple of (file_path, markdown_content)
+        """
         ...
-
-    def contextualize_chunk(self, chunk_text: str, full_document: str, law_metadata: Dict[str, str]) -> Dict[str, str]:
-        ... 
-

@@ -2,9 +2,99 @@
     "leyes": [
         {
             "numero": "24714",
-            "nombre": "Sistema Integrado de Jubilaciones y Pensiones",
+            "nombre": "Régimen de Asignaciones Familiares",
             "url": "https://www.argentina.gob.ar/normativa/nacional/ley-24714-39880/actualizacion",
-            "año": 1996
+            "año": 1996,
+            "categoria": "Asignaciones Familiares",
+            "descripcion_breve": "Regula el régimen de asignaciones familiares para trabajadores en relación de dependencia, beneficiarios del Sistema Integrado Previsional Argentino y beneficiarios de la Prestación por Desempleo."
+        },
+        {
+            "numero": "593-2016",
+            "nombre": "Decreto 593/2016 - Prestaciones",
+            "url": "https://www.argentina.gob.ar/normativa/nacional/decreto-593-2016-260573/texto",
+            "año": 2016,
+            "categoria": "Decretos",
+            "descripcion_breve": "Decreto sobre prestaciones de la seguridad social"
+        },
+        {
+            "numero": "1602-2009",
+            "nombre": "Decreto 1602/2009 - Asignación Universal por Hijo",
+            "url": "https://servicios.infoleg.gob.ar/infolegInternet/anexos/155000-159999/159466/norma.htm",
+            "año": 2009,
+            "categoria": "Decretos",
+            "descripcion_breve": "Incorporación del Subsistema no Contributivo de Asignación Universal por Hijo para Protección Social"
+        },
+        {
+            "numero": "1667-2012",
+            "nombre": "Decreto 1667/2012 - Asignaciones Familiares",
+            "url": "https://servicios.infoleg.gob.ar/infolegInternet/anexos/200000-204999/202004/norma.htm",
+            "año": 2012,
+            "categoria": "Decretos",
+            "descripcion_breve": "Modifica la forma de calcular los límites de ingresos para el otorgamiento de asignaciones familiares"
+        },
+        {
+            "numero": "446-2011",
+            "nombre": "Decreto 446/2011",
+            "url": "https://www.argentina.gob.ar/normativa/nacional/decreto-446-2011-181250/texto",
+            "año": 2011,
+            "categoria": "Decretos",
+            "descripcion_breve": "Normativa sobre seguridad social"
+        },
+        {
+            "numero": "24013",
+            "nombre": "Ley 24013",
+            "url": "https://servicios.infoleg.gob.ar/infolegInternet/anexos/50000-54999/51609/texact.htm",
+            "año": 1991,
+            "categoria": "Empleo",
+            "descripcion_breve": "Ley Nacional de Empleo"
+        },
+        {
+            "numero": "27726",
+            "nombre": "Ley 27726",
+            "url": "https://www.argentina.gob.ar/normativa/nacional/ley-27726-391364/texto",
+            "año": 2023,
+            "categoria": "Leyes",
+            "descripcion_breve": "Normativa de seguridad social"
+        },
+        {
+            "numero": "27548",
+            "nombre": "Ley 27548",
+            "url": "https://servicios.infoleg.gob.ar/infolegInternet/anexos/410000-414999/411022/texact.htm",
+            "año": 2020,
+            "categoria": "Leyes",
+            "descripcion_breve": "Normativa de seguridad social"
+        },
+        {
+            "numero": "decreto-2020",
+            "nombre": "Decreto 2020",
+            "url": "https://servicios.infoleg.gob.ar/infolegInternet/anexos/345000-349999/346233/norma.htm",
+            "año": 2020,
+            "categoria": "Decretos",
+            "descripcion_breve": "Decreto sobre seguridad social"
+        },
+        {
+            "numero": "decreto-2021",
+            "nombre": "Decreto 2021",
+            "url": "https://servicios.infoleg.gob.ar/infolegInternet/anexos/350000-354999/353030/norma.htm",
+            "año": 2021,
+            "categoria": "Decretos",
+            "descripcion_breve": "Decreto sobre seguridad social"
+        },
+        {
+            "numero": "decreto-2021-355",
+            "nombre": "Decreto 2021",
+            "url": "https://servicios.infoleg.gob.ar/infolegInternet/anexos/355000-359999/355822/texact.htm",
+            "año": 2021,
+            "categoria": "Decretos",
+            "descripcion_breve": "Decreto sobre seguridad social"
+        },
+        {
+            "numero": "decreto-2023",
+            "nombre": "Decreto 2023",
+            "url": "https://servicios.infoleg.gob.ar/infolegInternet/anexos/400000-404999/403940/norma.htm",
+            "año": 2023,
+            "categoria": "Decretos",
+            "descripcion_breve": "Decreto sobre seguridad social"
         }
     ]
 }
