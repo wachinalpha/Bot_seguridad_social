@@ -7,7 +7,7 @@ __pycache__/
 *.so
 
 rag_app/.env
-Wiki.pdf
+
 
 Bot_seguridad_social.code-workspace
 
@@ -216,4 +216,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-wiki.pdf
+
+# PDF files
+*.pdf
