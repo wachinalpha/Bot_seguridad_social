@@ -8,6 +8,7 @@ __pycache__/
 
 rag_app/.env
 
+*.pdf
 
 Bot_seguridad_social.code-workspace
 
