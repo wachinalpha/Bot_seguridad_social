@@ -536,6 +536,36 @@ Navegar a http://localhost:8000/docs para interfaz interactiva.
 
 ---
 
+## Agentes de IA en este Proyecto
+
+### Agentes de Desarrollo
+
+Estos son asistentes de IA que ayudan a escribir código:
+
+| Agente | Propósito | Configuración |
+|--------|-----------|---------------|
+| **Gemini/Antigravity** | Asistente principal de codificación | Lee `.agent/INSTRUCTIONS.md` |
+| **GitHub Copilot** | Autocompletado de código | Configurar con `.github/copilot-instructions.md` si se usa |
+
+Los agentes de desarrollo deben seguir las reglas definidas en `.agent/INSTRUCTIONS.md`.
+
+### El Bot RAG (Producto)
+
+El objetivo de este proyecto es construir un **chatbot de Seguridad Social** que:
+1. Recibe preguntas de usuarios sobre ANSES.
+2. Busca información relevante en una base de datos vectorial (ChromaDB).
+3. Genera respuestas usando un LLM (Google Gemini).
+
+Ver `rag_app/docs/TECHNICAL_ARCHITECTURE.md` para detalles de implementación.
+
+### Workflows para Agentes
+
+En `.agent/workflows/` hay guías paso a paso que los agentes pueden seguir:
+- `dev_setup.md` - Configurar entorno de desarrollo
+- `add_adapter.md` - Agregar un nuevo adapter (Hexagonal)
+
+---
+
 ## Recursos
 
 - [FastAPI Docs](https://fastapi.tiangolo.com/)
