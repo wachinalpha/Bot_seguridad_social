@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Optional
+from typing import Optional, Sequence
 
 from rag_app.domain.models import LawDocument, QueryResult
 
@@ -55,19 +55,20 @@ class RetrievalService:
                 logger.warning("No relevant laws found")
                 return self._create_error_result("No se encontraron leyes relevantes para tu consulta")
             
-            law_doc = similar_docs[0]  # Use most relevant law
-            logger.info(f"Found relevant law: {law_doc.titulo}")
+            law_docs = similar_docs
+            titles = ', '.join(d.titulo for d in law_docs)
+            logger.info(f"Found {len(law_docs)} relevant law(s): {titles}")
             
             # Step 3: Generate answer
             logger.info("Step 3: Generating answer")
-            answer = self.contextualizer.generate_answer(user_query, law_doc)
+            answer = self.contextualizer.generate_answer(user_query, law_docs)
             
             # Calculate response time
             response_time_ms = (time.time() - start_time) * 1000
             
             result = QueryResult(
                 answer=answer,
-                law_document=law_doc,
+                law_documents=law_docs,
                 confidence_score=1.0,
                 response_time_ms=response_time_ms
             )
@@ -106,14 +107,14 @@ class RetrievalService:
                 return self._create_error_result(f"Ley {law_id} no encontrada en la base de datos")
             
             # Generate answer
-            answer = self.contextualizer.generate_answer(user_query, law_doc)
+            answer = self.contextualizer.generate_answer(user_query, [law_doc])
             
             # Calculate response time
             response_time_ms = (time.time() - start_time) * 1000
             
             result = QueryResult(
                 answer=answer,
-                law_document=law_doc,
+                law_documents=[law_doc],
                 confidence_score=1.0,
                 response_time_ms=response_time_ms
             )
@@ -137,7 +138,7 @@ class RetrievalService:
         
         return QueryResult(
             answer=error_message,
-            law_document=dummy_law,
+            law_documents=[dummy_law],
             confidence_score=0.0,
             response_time_ms=response_time_ms
         )

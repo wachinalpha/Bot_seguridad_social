@@ -50,10 +50,8 @@ const App: React.FC = () => {
         role: MessageRole.BOT,
         text: response.answer,
         timestamp: new Date(),
-        lawDocument: response.law_document,
+        lawDocuments: response.law_documents,
         confidenceScore: response.confidence_score,
-        cacheUsed: response.cache_used,
-        cacheId: response.cache_id,
         responseTimeMs: response.response_time_ms,
       };
 

@@ -1,6 +1,6 @@
 """Pydantic schemas for API request/response validation."""
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 
@@ -34,7 +34,7 @@ class LawDocumentResponse(BaseModel):
 class ChatResponse(BaseModel):
     """Response schema for /api/v1/chat endpoint."""
     answer: str = Field(..., description="Generated answer from RAG system")
-    law_document: LawDocumentResponse = Field(..., description="Source law document")
+    law_documents: List[LawDocumentResponse] = Field(..., description="Source law documents used for context")
     confidence_score: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
     response_time_ms: float = Field(..., description="Response time in milliseconds")
     session_id: Optional[str] = Field(None, description="Session ID if provided")
@@ -43,13 +43,15 @@ class ChatResponse(BaseModel):
         json_schema_extra = {
             "example": {
                 "answer": "Los requisitos para jubilarse incluyen...",
-                "law_document": {
-                    "id": "ley_24241",
-                    "titulo": "Ley 24241 - Sistema Integrado de Jubilaciones y Pensiones",
-                    "url": "https://example.com/ley24241",
-                    "summary": "Norma que regula el sistema previsional argentino",
-                    "metadata": {"categoria": "Jubilaciones"}
-                },
+                "law_documents": [
+                    {
+                        "id": "ley_24241",
+                        "titulo": "Ley 24241 - Sistema Integrado de Jubilaciones y Pensiones",
+                        "url": "https://example.com/ley24241",
+                        "summary": "Norma que regula el sistema previsional argentino",
+                        "metadata": {"categoria": "Jubilaciones"}
+                    }
+                ],
                 "confidence_score": 0.95,
                 "response_time_ms": 234.5,
                 "session_id": "user-session-123"

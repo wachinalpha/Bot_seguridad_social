@@ -2,11 +2,84 @@ from google import genai
 from google.genai import types
 from pathlib import Path
 import logging
+from typing import Sequence
 
 from rag_app.domain.models import LawDocument
 from rag_app.config.settings import settings
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# System Prompt (fijo, se envía como system_instruction)
+# ============================================================================
+SYSTEM_PROMPT = """\
+Eres un asistente legal especializado EXCLUSIVAMENTE en Seguridad Social de Argentina (ANSES, asignaciones familiares, AUH, prestaciones, regímenes vinculados).
+
+REGLA DE ALCANCE (SCOPE):
+- Solo puedes responder consultas relacionadas con seguridad social / ANSES.
+- Si la consulta NO está relacionada, responde únicamente:
+  "Solo puedo responder consultas de Seguridad Social (ANSES)."
+
+REGLAS DE FUENTES (GROUNDING):
+- Debes usar ÚNICAMENTE la información del bloque CONTEXTO provisto por el sistema (leyes/documentos).
+- NO uses conocimiento general, memoria, ni información externa.
+- NO inventes artículos, requisitos, definiciones, fechas, montos, procedimientos o excepciones.
+
+EVIDENCIA OBLIGATORIA:
+- Cada afirmación factual debe estar respaldada por evidencia textual del CONTEXTO.
+- Debes citar SIEMPRE la fuente con el formato exacto: [DOC_ID:Lx-Ly] (donde DOC_ID es el identificador del documento y Lx-Ly son las líneas aproximadas).
+- Si no existe evidencia suficiente en el CONTEXTO, responde:
+  "No surge de los documentos provistos."
+  y (opcional) pide qué documento/dato faltaría.
+
+REGLAS DE INTERPRETACIÓN:
+- Si hay ambigüedad (por ejemplo el caso del usuario no especifica datos clave), indícalo y formula preguntas puntuales, pero NO supongas.
+- Si hay conflicto entre documentos del CONTEXTO, indícalo explícitamente con citas y NO elijas arbitrariamente; explica ambas lecturas.
+- No combines reglas de distintos documentos como si fueran una sola norma. Si usas más de un documento, aclara qué aporta cada uno y cita ambos.
+
+FORMATO DE SALIDA:
+Siempre responde en español y con estas secciones:
+
+1) Respuesta (conclusión breve)
+2) Evidencia (citas): lista de fragmentos o referencias del CONTEXTO que sustentan la respuesta
+3) Observaciones / Faltantes (si aplica): qué parte no está cubierta por el CONTEXTO o qué datos faltan para decidir
+
+SEGURIDAD:
+- No brindes asesoramiento legal definitivo; expresa que la respuesta es informativa y depende del texto provisto.
+- No sugieras acciones fuera del CONTEXTO (por ejemplo trámites) si el CONTEXTO no los describe.
+"""
+
+
+# ============================================================================
+# Task Prompt (template, se arma con cada request)
+# ============================================================================
+TASK_PROMPT = """\
+CONSULTA DEL USUARIO:
+{query}
+
+INSTRUCCIONES DE RESPUESTA:
+- Responde SOLO con el CONTEXTO. No uses conocimiento externo.
+- Cita toda afirmación factual con el formato de cita del CONTEXTO.
+- Si la consulta NO es de seguridad social / ANSES: responde exactamente "Solo puedo responder consultas de Seguridad Social (ANSES)."
+- Si la respuesta no surge del CONTEXTO: responde "No surge de los documentos provistos."
+
+CONTEXTO (hasta 3 documentos recuperados por similitud):
+{context_docs}
+
+FORMATO DE SALIDA (obligatorio):
+1) Respuesta:
+<respuesta breve y directa>
+
+2) Evidencia (citas):
+- <punto de evidencia 1> [DOC_ID:Lx-Ly]
+- <punto de evidencia 2> [DOC_ID:Lx-Ly]
+...
+
+3) Observaciones / Faltantes (si aplica):
+- <ambigüedad o dato faltante> [cita si aplica]
+- <si no surge, indicar qué faltaría>
+"""
 
 
 class GeminiManager:
@@ -24,42 +97,56 @@ class GeminiManager:
         self.model_name = settings.llm_model
         logger.info(f"Initialized GeminiManager with model: {self.model_name}")
     
-    def generate_answer(self, query: str, law_doc: LawDocument) -> str:
+    def generate_answer(self, query: str, law_docs: Sequence[LawDocument]) -> str:
         """
-        Generate answer to a query using full law context.
+        Generate answer to a query using full law context from multiple documents.
         
         Args:
             query: User's question
-            law_doc: Law document with file_path to markdown content
+            law_docs: List of law documents with file_path to markdown content
             
         Returns:
             Generated answer from the LLM
         """
         try:
-            # Read law content
-            if not law_doc.file_path or not Path(law_doc.file_path).exists():
-                raise ValueError(f"File path not found: {law_doc.file_path}")
+            # Build context from all law documents
+            context_parts = []
             
-            content = Path(law_doc.file_path).read_text(encoding='utf-8')
+            for law_doc in law_docs:
+                if not law_doc.file_path or not Path(law_doc.file_path).exists():
+                    logger.warning(f"File path not found: {law_doc.file_path}, skipping")
+                    continue
+                
+                text = Path(law_doc.file_path).read_text(encoding='utf-8')
+                doc_id = law_doc.id
+                titulo = law_doc.titulo
+                context_parts.append(
+                    f"--- DOCUMENTO: {titulo} (ID: {doc_id}) ---\n{text}\n--- FIN: {doc_id} ---"
+                )
             
-            system_instruction = f"""Eres un asistente experto en leyes de Seguridad Social de Argentina.
-
-Tienes acceso al texto completo de la siguiente ley:
-- Título: {law_doc.titulo}
-- Número: {law_doc.metadata.get('numero', 'N/A')}
-
-Tu trabajo es responder preguntas sobre esta ley de manera precisa y profesional.
-Siempre cita los artículos específicos cuando sea relevante."""
+            if not context_parts:
+                raise ValueError("No valid law documents found to generate context")
+            
+            context_docs = "\n\n".join(context_parts)
+            
+            # Build the task prompt with query and context
+            task_prompt = TASK_PROMPT.format(
+                query=query,
+                context_docs=context_docs,
+            )
+            
+            titles = ", ".join(d.titulo for d in law_docs)
+            logger.info(f"Generating answer using {len(context_parts)} laws: {titles}")
 
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=[content, query],
+                contents=task_prompt,
                 config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
+                    system_instruction=SYSTEM_PROMPT,
                 ),
             )
             
-            logger.info(f"Generated answer for law {law_doc.id}")
+            logger.info(f"Generated answer using {len(context_parts)} law(s)")
             return response.text
             
         except Exception as e:

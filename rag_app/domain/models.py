@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 
 @dataclass
@@ -30,7 +30,7 @@ class LawDocument:
 class QueryResult:
     """Result of a user query against the RAG system."""
     answer: str
-    law_document: LawDocument
+    law_documents: List[LawDocument]
     confidence_score: float = 0.0
     response_time_ms: Optional[float] = None
     
@@ -38,8 +38,10 @@ class QueryResult:
         """Convert to dictionary for serialization."""
         return {
             'answer': self.answer,
-            'law_title': self.law_document.titulo,
-            'law_id': self.law_document.id,
+            'law_documents': [
+                {'law_title': d.titulo, 'law_id': d.id}
+                for d in self.law_documents
+            ],
             'confidence_score': self.confidence_score,
             'response_time_ms': self.response_time_ms
         }

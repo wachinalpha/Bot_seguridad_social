@@ -2,7 +2,7 @@
  * Backend API Service
  * 
  * This service communicates with the FastAPI backend instead of using Gemini directly.
- * All AI processing, RAG, and context caching happens on the Python backend.
+ * All AI processing and RAG happens on the Python backend.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
@@ -22,10 +22,8 @@ export interface LawDocument {
 
 export interface ChatResponse {
   answer: string;
-  law_document: LawDocument;
+  law_documents: LawDocument[];
   confidence_score: number;
-  cache_used: boolean;
-  cache_id?: string;
   response_time_ms: number;
   session_id: string;
 }
