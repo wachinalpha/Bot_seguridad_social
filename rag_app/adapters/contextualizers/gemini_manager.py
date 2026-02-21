@@ -1,13 +1,17 @@
 from google import genai
 from google.genai import types
 from pathlib import Path
+import json
 import logging
+import re
 from typing import Sequence
 
 from rag_app.domain.models import LawDocument
 from rag_app.config.settings import settings
 
 logger = logging.getLogger(__name__)
+
+_LEYES_CONFIG = Path(__file__).resolve().parents[2] / "config" / "leyes_config.json"
 
 
 # ============================================================================
@@ -86,16 +90,54 @@ class GeminiManager:
     """Adapter for generating answers using Gemini API."""
     
     def __init__(self, api_key: str = None):
-        """
-        Initialize the Gemini manager.
-        
-        Args:
-            api_key: Gemini API key (defaults to settings)
-        """
         api_key = api_key or settings.gemini_api_key
         self.client = genai.Client(api_key=api_key)
         self.model_name = settings.llm_model
+        self._url_map = self._build_url_map()
         logger.info(f"Initialized GeminiManager with model: {self.model_name}")
+
+    @staticmethod
+    def _build_url_map() -> dict:
+        """
+        Build a mapping from doc_id (ley_24714) → URL from leyes_config.json.
+        Falls back gracefully if the file is missing.
+        """
+        try:
+            with open(_LEYES_CONFIG, encoding="utf-8") as f:
+                config = json.load(f)
+            url_map = {}
+            for ley in config.get("leyes", []):
+                numero = ley.get("numero", "").strip()
+                url = ley.get("url", "").strip()
+                if numero and url:
+                    doc_id = f"ley_{numero}"
+                    url_map[doc_id] = url
+            logger.info(f"Loaded {len(url_map)} law URLs from leyes_config.json")
+            return url_map
+        except Exception as e:
+            logger.warning(f"Could not load leyes_config.json: {e}")
+            return {}
+
+    def _linkify_citations(self, text: str) -> str:
+        """
+        Replace inline citations like [ley_24714:L142-L147] with markdown links
+        that point to the official law URL.
+
+        Example:
+            [ley_24714:L142-L147]  →  [ley_24714:L142-L147](https://...)
+        """
+        # Matches: [ley_XXXX:Lx-Ly] or [ley_XXXX:Lx]
+        pattern = re.compile(r'\[(?P<citation>(ley_[\w\-]+):L[\d]+(?:-L[\d]+)?)\]')
+
+        def replace(m: re.Match) -> str:
+            citation = m.group("citation")
+            doc_id = m.group(2)        # e.g. ley_24714
+            url = self._url_map.get(doc_id)
+            if url:
+                return f"[{citation}]({url})"
+            return m.group(0)          # no URL found, leave as-is
+
+        return pattern.sub(replace, text)
     
     def generate_answer(self, query: str, law_docs: Sequence[LawDocument]) -> str:
         """
@@ -147,7 +189,7 @@ class GeminiManager:
             )
             
             logger.info(f"Generated answer using {len(context_parts)} law(s)")
-            return response.text
+            return self._linkify_citations(response.text)
             
         except Exception as e:
             logger.error(f"Error generating answer: {e}")

@@ -1,10 +1,15 @@
 import logging
 import time
-from typing import Optional, Sequence
+from typing import List, Optional
 
 from rag_app.domain.models import LawDocument, QueryResult
 
 logger = logging.getLogger(__name__)
+
+# ID of the base law for the ANSES assignment system.
+# When this law appears in the candidate results it is promoted
+# to position 1 so the LLM always has the foundational context first.
+ANCHOR_LAW_ID = "ley_24714"
 
 
 class RetrievalService:
@@ -23,7 +28,27 @@ class RetrievalService:
         self.vector_store = vector_store
         self.contextualizer = contextualizer
     
-    def query(self, user_query: str, top_k: int = 1) -> QueryResult:
+    def _rerank(self, candidates: List[LawDocument], top_k: int) -> List[LawDocument]:
+        """
+        Rerank candidate documents, promoting ANCHOR_LAW_ID to position 1
+        when it appears in the results, then trim to top_k.
+
+        Strategy:
+        - Search was done with top_k + 2 candidates.
+        - If ley_24714 appears anywhere in candidates → move it to front.
+        - Return the first top_k documents.
+        """
+        anchor = next((d for d in candidates if d.id == ANCHOR_LAW_ID), None)
+        if anchor:
+            others = [d for d in candidates if d.id != ANCHOR_LAW_ID]
+            reranked = [anchor] + others
+            logger.info(f"Reranking: promoted {ANCHOR_LAW_ID} to position 1")
+        else:
+            reranked = candidates
+            logger.info(f"Reranking: {ANCHOR_LAW_ID} not in candidates, keeping original order")
+        return reranked[:top_k]
+
+    def query(self, user_query: str, top_k: int = 3) -> QueryResult:
         """
         Process a user query and return an answer.
         
@@ -47,17 +72,19 @@ class RetrievalService:
             logger.info("Step 1: Embedding query")
             query_embedding = self.embedder.embed_text(user_query)
             
-            # Step 2: Search for relevant law
+            # Step 2: Search for relevant laws (fetch extra candidates for reranking)
             logger.info("Step 2: Searching vector store")
-            similar_docs = self.vector_store.search(query_embedding, top_k=top_k)
+            candidates = self.vector_store.search(query_embedding, top_k=top_k + 2)
             
-            if not similar_docs:
+            if not candidates:
                 logger.warning("No relevant laws found")
                 return self._create_error_result("No se encontraron leyes relevantes para tu consulta")
             
-            law_docs = similar_docs
+            # Step 2b: Rerank — promote ley_24714 if found in candidates
+            logger.info("Step 2b: Reranking candidates")
+            law_docs = self._rerank(candidates, top_k)
             titles = ', '.join(d.titulo for d in law_docs)
-            logger.info(f"Found {len(law_docs)} relevant law(s): {titles}")
+            logger.info(f"Final context: {len(law_docs)} law(s): {titles}")
             
             # Step 3: Generate answer
             logger.info("Step 3: Generating answer")
