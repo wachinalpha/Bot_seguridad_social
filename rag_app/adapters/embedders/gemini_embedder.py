@@ -1,4 +1,4 @@
-import google.generativeai as genai
+from google import genai
 from typing import List
 import logging
 import time
@@ -19,7 +19,7 @@ class GeminiEmbedder:
             api_key: Gemini API key (defaults to settings)
         """
         api_key = api_key or settings.gemini_api_key
-        genai.configure(api_key=api_key)
+        self.client = genai.Client(api_key=api_key)
         self.model_name = settings.embedding_model
         logger.info(f"Initialized GeminiEmbedder with model: {self.model_name}")
     
@@ -34,12 +34,11 @@ class GeminiEmbedder:
             List of floats representing the embedding vector
         """
         try:
-            result = genai.embed_content(
+            response = self.client.models.embed_content(
                 model=self.model_name,
-                content=text,
-                task_type="retrieval_document"
+                contents=text,
             )
-            return result['embedding']
+            return response.embeddings[0].values
         except Exception as e:
             logger.error(f"Error embedding text: {e}")
             raise
@@ -69,7 +68,6 @@ class GeminiEmbedder:
                     
             except Exception as e:
                 logger.error(f"Error embedding text {i}: {e}")
-                # Return zero vector on error to maintain batch consistency
-                embeddings.append([0.0] * 768)  # text-embedding-004 dimension
+                raise
         
         return embeddings

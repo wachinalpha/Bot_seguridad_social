@@ -22,7 +22,7 @@ from rag_app.config.settings import settings
 from rag_app.utils.logger import configure_logging
 from rag_app.adapters.embedders.gemini_embedder import GeminiEmbedder
 from rag_app.adapters.stores.chroma_adapter import ChromaAdapter
-from rag_app.adapters.contextualizers.gemini_manager import GeminiCacheManager
+from rag_app.adapters.contextualizers.gemini_manager import GeminiManager
 from rag_app.services.retrieval_service import RetrievalService
 from rag_app.services.ingestion_service import IngestionService
 from rag_app.adapters.http.api_adapter import APIAdapter
@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
         logger.info("Initializing services...")
         embedder = GeminiEmbedder()
         vector_store = ChromaAdapter()
-        contextualizer = GeminiCacheManager()
+        contextualizer = GeminiManager()
         
         # Create application services
         retrieval_service = RetrievalService(
@@ -116,13 +116,12 @@ app = FastAPI(
     
     ## Features
     - 🤖 AI-powered legal question answering
-    - 💾 Context caching for fast responses
     - 📚 Document-level retrieval (full law context)
     - 💬 Conversational sessions with history
     
     ## Architecture
     Built with Hexagonal Architecture (Ports & Adapters) using:
-    - Google Gemini API (Context Caching)
+    - Google Gemini API
     - ChromaDB (Vector Store)
     - IBM Docling (Document Processing)
     """,

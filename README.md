@@ -324,13 +324,13 @@ docker compose exec backend python -c "from rag_app.adapters.stores.chroma_adapt
 
 ```bash
 # Modo interactivo (pide confirmación)
-docker compose run --rm ingest python -m rag_app.scripts.reset_db
+docker exec bot-seguridad-backend uv run python /app/rag_app/scripts/reset_db.py
 
 # Modo force (sin confirmación)
-docker compose run --rm ingest python -m rag_app.scripts.reset_db --force
+docker exec bot-seguridad-backend uv run python /app/rag_app/scripts/reset_db.py --force
 
 # Después de resetear, re-ingestar
-docker compose run --rm ingest
+docker exec bot-seguridad-backend uv run python /app/rag_app/scripts/setup_db.py
 ```
 
 #### Reconstruir Imágenes

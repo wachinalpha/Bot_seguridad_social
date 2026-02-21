@@ -1,7 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Dict, List
-from datetime import datetime
-import hashlib
+from typing import Optional, Dict
 
 
 @dataclass
@@ -29,34 +27,11 @@ class LawDocument:
 
 
 @dataclass
-class CacheSession:
-    """Represents a Gemini API cached content session."""
-    cache_id: str  # Google's cache ID
-    law_id: str  # Reference to LawDocument
-    content_hash: str  # SHA256 hash of the markdown content
-    expiration_time: datetime
-    model_name: str = "models/gemini-1.5-pro"
-    created_at: datetime = field(default_factory=datetime.now)
-    
-    @property
-    def is_expired(self) -> bool:
-        """Check if the cache has expired."""
-        return datetime.now() >= self.expiration_time
-    
-    @staticmethod
-    def compute_content_hash(content: str) -> str:
-        """Compute SHA256 hash of content for cache validation."""
-        return hashlib.sha256(content.encode('utf-8')).hexdigest()
-
-
-@dataclass
 class QueryResult:
     """Result of a user query against the RAG system."""
     answer: str
     law_document: LawDocument
     confidence_score: float = 0.0
-    cache_used: bool = False
-    cache_id: Optional[str] = None
     response_time_ms: Optional[float] = None
     
     def to_dict(self) -> Dict:
@@ -66,7 +41,5 @@ class QueryResult:
             'law_title': self.law_document.titulo,
             'law_id': self.law_document.id,
             'confidence_score': self.confidence_score,
-            'cache_used': self.cache_used,
             'response_time_ms': self.response_time_ms
         }
-    

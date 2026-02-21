@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class RetrievalService:
-    """Service for retrieval: Query → Vector → Cache → Answer"""
+    """Service for retrieval: Query → Vector Search → Answer"""
     
     def __init__(self, embedder, vector_store, contextualizer):
         """
@@ -17,7 +17,7 @@ class RetrievalService:
         Args:
             embedder: Implementation of EmbedderPort
             vector_store: Implementation of VectorStorePort
-            contextualizer: Implementation of ContextualizerPort
+            contextualizer: GeminiManager for answer generation
         """
         self.embedder = embedder
         self.vector_store = vector_store
@@ -30,8 +30,7 @@ class RetrievalService:
         Flow:
         1. Embed the query
         2. Search vector store for most relevant law
-        3. Get or create cache for that law
-        4. Generate answer using cached context
+        3. Generate answer using full law context
         
         Args:
             user_query: User's question
@@ -59,29 +58,21 @@ class RetrievalService:
             law_doc = similar_docs[0]  # Use most relevant law
             logger.info(f"Found relevant law: {law_doc.titulo}")
             
-            # Step 3: Get or create cache (may return None on Free Tier)
-            logger.info("Step 3: Getting or creating cache")
-            cache_session = self.contextualizer.get_or_create_cache(law_doc)
-            cache_was_reused = cache_session is not None and not cache_session.is_expired
-            
-            # Step 4: Generate answer (with or without cache)
-            logger.info("Step 4: Generating answer")
-            answer = self.contextualizer.generate_answer(cache_session, user_query, law_doc)
+            # Step 3: Generate answer
+            logger.info("Step 3: Generating answer")
+            answer = self.contextualizer.generate_answer(user_query, law_doc)
             
             # Calculate response time
             response_time_ms = (time.time() - start_time) * 1000
             
-            # Create result
             result = QueryResult(
                 answer=answer,
                 law_document=law_doc,
                 confidence_score=1.0,
-                cache_used=cache_was_reused,
-                cache_id=cache_session.cache_id if cache_session else None,
                 response_time_ms=response_time_ms
             )
             
-            logger.info(f"Query completed in {response_time_ms:.2f}ms (cache: {cache_was_reused})")
+            logger.info(f"Query completed in {response_time_ms:.2f}ms")
             return result
             
         except Exception as e:
@@ -114,12 +105,8 @@ class RetrievalService:
                 logger.warning(f"Law {law_id} not found")
                 return self._create_error_result(f"Ley {law_id} no encontrada en la base de datos")
             
-            # Get or create cache (may return None on Free Tier)
-            cache_session = self.contextualizer.get_or_create_cache(law_doc)
-            cache_was_reused = cache_session is not None and not cache_session.is_expired
-            
-            # Generate answer (with or without cache)
-            answer = self.contextualizer.generate_answer(cache_session, user_query, law_doc)
+            # Generate answer
+            answer = self.contextualizer.generate_answer(user_query, law_doc)
             
             # Calculate response time
             response_time_ms = (time.time() - start_time) * 1000
@@ -128,8 +115,6 @@ class RetrievalService:
                 answer=answer,
                 law_document=law_doc,
                 confidence_score=1.0,
-                cache_used=cache_was_reused,
-                cache_id=cache_session.cache_id if cache_session else None,
                 response_time_ms=response_time_ms
             )
             
@@ -154,6 +139,5 @@ class RetrievalService:
             answer=error_message,
             law_document=dummy_law,
             confidence_score=0.0,
-            cache_used=False,
             response_time_ms=response_time_ms
         )

@@ -124,8 +124,6 @@ class APIAdapter:
                         metadata=result.law_document.metadata
                     ),
                     confidence_score=result.confidence_score,
-                    cache_used=result.cache_used,
-                    cache_id=result.cache_id,
                     response_time_ms=result.response_time_ms,
                     session_id=session.session_id
                 )
