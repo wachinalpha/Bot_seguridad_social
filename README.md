@@ -1,6 +1,6 @@
 # Bot Seguridad Social Argentina 🇦🇷
 
-Promotor de Seguridad Social basado en RAG (Retrieval Augmented Generation) para responder consultas sobre la seguridad social Argentina. Utiliza Google Gemini API con Context Caching, ChromaDB para almacenamiento vectorial, e IBM Docling para procesamiento de documentos.
+Promotor de Seguridad Social basado en RAG (Retrieval Augmented Generation) para responder consultas sobre la seguridad social Argentina. Utiliza Google Gemini API, ChromaDB para almacenamiento vectorial, e IBM Docling para procesamiento de documentos.
 
 ## 📋 Tabla de Contenidos
 
@@ -11,13 +11,11 @@ Promotor de Seguridad Social basado en RAG (Retrieval Augmented Generation) para
   - [Ingesta de Documentos](#ingesta-de-documentos)
   - [Sistema de Versionado](#sistema-de-versionado)
   - [Comandos Útiles](#comandos-útiles-docker)
-  - [Troubleshooting Docker](#troubleshooting-docker)
 - [💻 Instalación Manual (Desarrollo Local)](#-instalación-manual-desarrollo-local)
   - [Requisitos Previos](#requisitos-previos)
   - [Instalación y Configuración](#instalación-y-configuración)
   - [Ejecución de la Aplicación](#ejecución-de-la-aplicación)
 - [Estructura de Carpetas](#-estructura-de-carpetas)
-- [Troubleshooting](#-troubleshooting)
 
 ---
 
@@ -126,38 +124,24 @@ bot-seguridad-frontend   Up
 
 El sistema necesita documentos legales indexados para funcionar. Hay dos formas de ingestar documentos:
 
+> **💡 `docker compose run` vs `docker exec`:**
+>
+> - `docker compose run --rm ingest` → **Crea un contenedor temporal nuevo.** Usar para la ingesta inicial o cuando el backend no está corriendo.
+> - `docker exec bot-seguridad-backend` → **Ejecuta dentro del contenedor que ya está corriendo.** Más rápido, usar para operaciones de mantenimiento (reset, re-ingesta).
+>
+> Es importante usar `uv run python` en lugar de solo `python` para que las dependencias estén disponibles.
+
 #### Opción A: Ingestar todas las leyes configuradas
 
 Procesa todas las leyes definidas en `rag_app/config/leyes_config.json`:
 
 ```bash
+# Si el backend NO está corriendo (crea contenedor temporal)
 docker compose run --rm ingest
-```
 
-Esto procesará aproximadamente **11 leyes** y puede tardar varios minutos. Verás logs como:
-
+# Si el backend YA está corriendo (más rápido)
+docker exec bot-seguridad-backend uv run python /app/rag_app/scripts/setup_db.py
 ```
-Processing: Ley 24714 - Régimen de Asignaciones Familiares
-✓ ley_24714 processed successfully
-Processing: Ley 24013 - Ley Nacional de Empleo
-✓ ley_24013 processed successfully
-...
-✓ Database setup completed successfully!
-Vector database contains 11 documents
-```
-
-**Leyes incluidas:**
-1. Ley 24714 - Régimen de Asignaciones Familiares
-2. Ley 19032 - Régimen de jubilaciones FFAA
-3. Ley 24013 - Ley Nacional de Empleo
-4. Ley 27548 - Programa ATP
-5. Ley 27561 - Ley de Solidaridad Social
-6. Ley 24241 - Sistema Integrado de Jubilaciones y Pensiones
-7. Ley 27725 - Actividades Esenciales en Infraestructura Crítica
-8. Ley 27726 - Programa de Alivio Fiscal
-9. Decreto 1667/2012 - Transferencia ANSES
-10. Decreto 1602/2009 - Asignación Universal por Hijo
-11. Decreto 593/2016 - Fondo de Reparación Histórica
 
 #### Opción B: Ingestar una sola ley específica
 
@@ -165,13 +149,11 @@ Para testing o desarrollo, podés procesar una ley individual:
 
 ```bash
 # Ver lista de leyes disponibles
-docker compose run --rm ingest uv run python -m rag_app.scripts.ingest_single_law --list
+docker compose run --rm ingest uv run python /app/rag_app/scripts/ingest_single_law.py --list
 
 # Ingestar una ley específica por su número
-docker compose run --rm ingest uv run python -m rag_app.scripts.ingest_single_law 24714
+docker compose run --rm ingest uv run python /app/rag_app/scripts/ingest_single_law.py 24714
 ```
-
-> **💡 Nota:** Es importante usar `uv run python` en lugar de solo `python` para que las dependencias estén disponibles.
 
 ---
 
@@ -207,7 +189,7 @@ Para crear una nueva versión del corpus (ej: con leyes actualizadas o diferente
 CORPUS_VERSION=v2 docker compose run --rm ingest
 
 # O crear v2 con solo una ley para testing
-CORPUS_VERSION=v2 docker compose run --rm ingest uv run python -m rag_app.scripts.ingest_single_law 24714
+CORPUS_VERSION=v2 docker compose run --rm ingest uv run python /app/rag_app/scripts/ingest_single_law.py 24714
 
 # Usar versión v2 en el backend
 CORPUS_VERSION=v2 docker compose up -d backend
@@ -216,13 +198,7 @@ CORPUS_VERSION=v2 docker compose up -d backend
 **Ejemplo práctico:**
 ```bash
 # 1. Crear v2 solo con Ley 24714 (Asignaciones Familiares)
-CORPUS_VERSION=v2 docker compose run --rm ingest uv run python -m rag_app.scripts.ingest_single_law 24714
-
-# 2. Verificar que v2 tiene 1 documento
-docker compose exec backend python -c "from rag_app.config.settings import Settings; from rag_app.adapters.stores.chroma_adapter import ChromaAdapter; s = Settings(corpus_version='v2'); ca = ChromaAdapter(); print(f'v2 docs: {ca.count_documents()}')"
-
-# 3. v1 sigue teniendo 11 documentos (sin afectar)
-docker compose exec backend python -c "from rag_app.adapters.stores.chroma_adapter import ChromaAdapter; print(f'v1 docs: {ChromaAdapter().count_documents()}')"
+CORPUS_VERSION=v2 docker compose run --rm ingest uv run python /app/rag_app/scripts/ingest_single_law.py 24714
 ```
 
 #### Listar Versiones Disponibles
@@ -314,10 +290,10 @@ docker compose down -v  # ⚠️ Esto borrará los datos!
 
 ```bash
 # Cantidad de documentos indexados
-docker compose exec backend python -c "from rag_app.adapters.stores.chroma_adapter import ChromaAdapter; print(f'Documentos: {ChromaAdapter().count_documents()}')"
+docker exec bot-seguridad-backend uv run python -c "from rag_app.adapters.stores.chroma_adapter import ChromaAdapter; print(f'Documentos: {ChromaAdapter().count_documents()}')"
 
 # IDs de todos los documentos
-docker compose exec backend python -c "from rag_app.adapters.stores.chroma_adapter import ChromaAdapter; print(ChromaAdapter().get_all_document_ids())"
+docker exec bot-seguridad-backend uv run python -c "from rag_app.adapters.stores.chroma_adapter import ChromaAdapter; print(ChromaAdapter().get_all_document_ids())"
 ```
 
 #### Resetear Base de Datos
@@ -374,154 +350,7 @@ docker image prune
 docker system prune -a
 ```
 
----
 
-### Troubleshooting Docker
-
-#### Error: `GEMINI_API_KEY not found`
-
-**Problema:** El archivo `.env` no existe o no contiene la API key.
-
-**Solución:**
-```bash
-# Verificar que .env existe
-ls -la .env
-
-# Verificar contenido
-cat .env | grep GEMINI_API_KEY
-
-# Si no existe, crear desde template
-cp .env.example .env
-# Editar y agregar tu API key
-```
-
-#### Error: `port is already allocated`
-
-**Problema:** Los puertos 8000 o 5173 ya están en uso.
-
-**Solución:**
-```bash
-# Ver qué proceso está usando el puerto
-sudo lsof -i :8000
-sudo lsof -i :5173
-
-# Matar el proceso o cambiar puertos en docker-compose.yml
-# Opción 1: Matar proceso
-sudo kill -9 <PID>
-
-# Opción 2: Cambiar puertos en docker-compose.yml
-# ports:
-#   - "8001:8000"  # Puerto externo diferente
-```
-
-#### Error: `Backend unhealthy`
-
-**Problema:** El healthcheck del backend falla.
-
-**Solución:**
-```bash
-# Ver logs del backend
-docker compose logs backend
-
-# Verificar que ChromaDB se inicializó correctamente
-docker compose exec backend ls -la /app/data/chroma_db/
-
-# Reiniciar con logs
-docker compose restart backend && docker compose logs -f backend
-```
-
-#### Error: `No documents indexed`
-
-**Problema:** No se ejecutó el proceso de ingesta.
-
-**Solución:**
-```bash
-# Ejecutar ingesta
-docker compose run --rm ingest
-
-# Verificar que los datos se guardaron
-ls -lh data/chroma_db/v1/
-ls -lh data/processed/v1/
-```
-
-#### Frontend no conecta con Backend
-
-**Problema:** CORS o configuración de red.
-
-**Solución:**
-```bash
-# Verificar que VITE_API_URL apunta a localhost
-docker compose logs frontend | grep VITE_API_URL
-
-# Verificar que backend está en la misma red
-docker network inspect bot_seguridad_social_bot-network
-
-# Verificar CORS en logs del backend
-docker compose logs backend | grep CORS
-```
-
-#### Builds muy lentos
-
-**Problema:** Docker está descargando dependencias en cada build.
-
-**Solución:**
-```bash
-# Usar caché de Docker
-docker compose build  # Sin --no-cache
-
-# Verificar que .dockerignore existe
-cat .dockerignore
-
-# Limpiar builder cache si es necesario
-docker builder prune
-```
-
-#### Cambios en el código no se reflejan
-
-**Problema:** Hot reload no funciona o volúmenes mal configurados.
-
-**Solución:**
-```bash
-# Backend: Verificar que el volumen está montado
-docker compose exec backend ls -la /app/rag_app
-
-# Frontend: Verificar Vite HMR
-docker compose logs frontend | grep "HMR"
-
-# Reiniciar con recreación de contenedores
-docker compose up -d --force-recreate
-```
-
-#### Backend sigue mostrando la versión anterior
-
-**Problema:** Cambiaste `CORPUS_VERSION` en `.env` pero el backend sigue usando v1.
-
-**Síntomas:**
-- Logs muestran `Initialized ChromaDB at /app/data/chroma_db/v1`
-- API devuelve el número incorrecto de documentos
-- Frontend muestra documentos de la versión anterior
-
-**Solución:**
-```bash
-# 1. Verificar que .env tiene la versión correcta
-grep CORPUS_VERSION .env
-
-# 2. IMPORTANTE: Usar 'up -d' en lugar de 'restart'
-docker compose up -d backend
-
-# 3. Verificar en los logs que cargó la nueva versión
-docker compose logs backend | grep "ChromaDB at"
-docker compose logs backend | grep "Collection:"
-docker compose logs backend | grep "Indexed documents:"
-
-# 4. Refrescar el frontend (F5 en el navegador)
-```
-
-**¿Por qué pasa esto?**
-- `docker compose restart` reinicia el contenedor pero **NO recarga** las variables de entorno del archivo `.env`
-- `docker compose up -d` recrea el contenedor con las nuevas variables de entorno
-
----
 
 ## 💻 Instalación Manual (Desarrollo Local)
 
@@ -808,7 +637,7 @@ front/
 | `chunkers/`        | Implementaciones: `HybridMarkdownChunker`, `ArticleChunker`, etc.                        |
 | `embedders/`       | Implementaciones: `GeminiEmbedder`, etc.                                                 |
 | `stores/`          | Implementaciones: `ChromaAdapter`, `PgVectorStore`, etc.                                 |
-| `contextualizers/` | Lógica para construir prompts y aplicar Context Caching de Gemini.                       |
+| `contextualizers/` | Lógica para construir prompts y generar respuestas con Gemini.                           |
 | `http/`            | Adaptadores HTTP: `APIAdapter` (routers FastAPI), `SessionManager`.                      |
 
 #### `services/`
@@ -818,58 +647,6 @@ front/
 | `retrieval_service.py` | Dada una consulta → busca los chunks relevantes → construye contexto → genera respuesta con LLM. |
 
 ---
-
-## 🔧 Troubleshooting
-
-### Backend
-
-#### Error: `GEMINI_API_KEY not found`
-**Solución:** Verificá que el archivo `.env` existe en `rag_app/` y contiene tu API key:
-```bash
-cd rag_app
-cat .env
-```
-
-#### Error: `Could not find Anses1.md`
-**Solución:** El script `setup_from_md.py` busca en:
-- `rag_app/Anses1.md`
-- `Documentos_Anses/Anses1.md`
-
-Asegurate que el archivo esté en una de estas ubicaciones.
-
-#### Error: `Module 'rag_app' has no attribute...`
-**Solución:** Ejecutá los scripts desde el **directorio raíz del proyecto** usando:
-```bash
-python -m rag_app.scripts.setup_from_md
-```
-No ejecutes directamente con `python rag_app/scripts/setup_from_md.py`.
-
-#### Error: `Port 8000 already in use`
-**Solución:** Cambiá el puerto en `api_main.py` o matá el proceso que está usando el puerto:
-```bash
-lsof -ti:8000 | xargs kill -9
-```
-
-### Frontend
-
-#### Error: `npm install` falla
-**Solución:** Verificá tu versión de Node.js:
-```bash
-node --version  # Debe ser >= 18
-```
-
-#### Error: `API connection failed`
-**Solución:** Verificá que:
-1. El backend esté corriendo en `http://localhost:8000`
-2. CORS esté configurado correctamente en `api_main.py`
-3. El archivo `services/api.ts` apunte a la URL correcta del backend
-
-#### La app carga pero no responde
-**Solución:** Abrí las DevTools del navegador (F12) y revisá la consola para errores. Verificá que el backend tenga documentos indexados:
-```bash
-# Verificar logs del backend buscando:
-# "📊 Indexed documents: N"
-```
 
 ---
 
@@ -904,7 +681,6 @@ Este proyecto está en desarrollo activo. La arquitectura hexagonal facilita agr
 ## 📝 Notas
 
 - **Arquitectura Hexagonal:** Facilita testing y permite cambiar implementaciones (ej: de ChromaDB a PostgreSQL con pgvector) sin tocar el core.
-- **Context Caching de Gemini:** Permite cachear documentos grandes (leyes completas) para reducir costos y latencia.
 - **Document-Level Retrieval:** Se recuperan leyes completas en lugar de fragmentos pequeños para mejor contexto.
 
 

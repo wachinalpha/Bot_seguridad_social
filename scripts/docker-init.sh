@@ -100,6 +100,6 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "Comandos útiles:"
 echo "  • Ver logs:           docker compose logs -f"
-echo "  • Resetear BD:        docker compose run --rm ingest python -m rag_app.scripts.reset_db --force"
+echo "  • Resetear BD:        docker exec bot-seguridad-backend uv run python /app/rag_app/scripts/reset_db.py --force"
 echo "  • Detener servicios:  docker compose down"
 echo ""
