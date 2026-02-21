@@ -1,0 +1,124 @@
+{
+  "timestamp": "2026-02-21_18-02-07",
+  "n_cases": 5,
+  "results": [
+    {
+      "id": "q1_trabajo_informal",
+      "question": "¿Puedo cobrar la AUH si tengo trabajo informal?",
+      "hit_rate": 1.0,
+      "precision_at_k": 0.3333333333333333,
+      "ndcg_at_k": 0.6309297535714575,
+      "citation_present": true,
+      "citation_count": 4,
+      "keyword_coverage": 0.3333333333333333,
+      "refusal_accurate": true,
+      "over_refusal": false,
+      "under_refusal": false,
+      "latency_ms": 10303.4,
+      "answer": "1) Respuesta:\nSí, es posible cobrar la Asignación Universal por Hijo para Protección Social (AUH) si te desempeñás en la economía informal, siempre y cuando la remuneración que percibas no sea superior al salario mínimo, vital y móvil.\n\n2) Evidencia (citas):\n- La Asignación Universal por Hijo para Protección Social está destinada a niños, niñas y adolescentes que residan en Argentina y pertenezcan a grupos familiares que se encuentren desocupados o se desempeñen en la economía informal. [ley_24714:L56-L59]\n- Se excluyen del beneficio de la AUH los trabajadores que se desempeñen en la economía informal y perciban una remuneración superior al salario mínimo, vital y móvil. [ley_24714:L83-L85]\n- El subsistema no contributivo de Asignación Universal por Hijo para Protección Social está destinado a niños, niñas y adolescentes que no tengan otra asignación familiar prevista y pertenezcan a grupos familiares desocupados o que se desempeñen en la economía informal. [ley_1602-2009:L123-L126]\n- Quedan excluidos de este beneficio los trabajadores de la economía informal que perciban una remuneración superior al salario mínimo, vital y móvil. [ley_1602-2009:L130-L133]\n\n3) Observaciones / Faltantes:\n- El CONTEXTO no especifica el monto actual del salario mínimo, vital y móvil, lo cual es un dato fundamental para determinar la elegibilidad en el caso particular del usuario.",
+      "retrieved_ids": [
+        "ley_24714",
+        "ley_1602-2009",
+        "ley_593-2016"
+      ],
+      "expected_ids": [
+        "ley_1602-2009"
+      ],
+      "should_refuse": false
+    },
+    {
+      "id": "q2_edad_auh",
+      "question": "¿Hasta qué edad se cobra la AUH?",
+      "hit_rate": 1.0,
+      "precision_at_k": 0.3333333333333333,
+      "ndcg_at_k": 1.0,
+      "citation_present": true,
+      "citation_count": 2,
+      "keyword_coverage": 0.6666666666666666,
+      "refusal_accurate": true,
+      "over_refusal": false,
+      "under_refusal": false,
+      "latency_ms": 6949.6,
+      "answer": "1) Respuesta:\nLa Asignación Universal por Hijo para Protección Social se cobra por cada niña, niño y/o adolescente menor de DIECIOCHO (18) años que se encuentre a cargo del beneficiario. No obstante, no hay límite de edad cuando se trata de una persona con discapacidad.\n\n2) Evidencia (citas):\n- \"La Asignación Universal por Hijo para Protección Social consistirá en una prestación monetaria no retributiva de carácter mensual, que se abonará a uno solo o una sola de los padres o de las madres, tutor o tutora, curador o curadora o pariente por consanguinidad hasta el tercer grado, por cada niña, niño y/o adolescente menor de DIECIOCHO (18) años que se encuentre a su cargo, o sin límite de edad cuando se trate de una persona con discapacidad\" [ley_24714:L170-L174]\n- \"ARTICULO 14 bis.- La Asignación Universal por Hijo para Protección Social consistirá en una prestación monetaria no retributiva de carácter mensual, que se abonará a uno solo de los padres, tutor, curador o pariente por consanguinidad hasta el tercer grado, por cada menor de DIECIOCHO (18) años que se encuentre a su cargo o sin límite de edad cuando se trate de un hijo discapacitado\" [ley_1602-2009:L129-L133]\n\n3) Observaciones / Faltantes (si aplica):\nNo aplica.",
+      "retrieved_ids": [
+        "ley_24714",
+        "ley_1602-2009",
+        "ley_593-2016"
+      ],
+      "expected_ids": [
+        "ley_24714"
+      ],
+      "should_refuse": false
+    },
+    {
+      "id": "q3_meses_embarazo",
+      "question": "¿Cuántos meses se cobra la asignación por embarazo?",
+      "hit_rate": 1.0,
+      "precision_at_k": 0.3333333333333333,
+      "ndcg_at_k": 0.6309297535714575,
+      "citation_present": true,
+      "citation_count": 1,
+      "keyword_coverage": 0.75,
+      "refusal_accurate": true,
+      "over_refusal": false,
+      "under_refusal": false,
+      "latency_ms": 6866.8,
+      "answer": "1) Respuesta:\nLa Asignación por Embarazo para Protección Social se cobra mensualmente desde el inicio del embarazo hasta su interrupción o el nacimiento del hijo, con un límite máximo de nueve (9) mensualidades. La solicitud de esta asignación debe realizarse a partir de la decimosegunda (12) semana de gestación.\n\n2) Evidencia (citas):\n- \"La Asignación por Embarazo para Protección Social consistirá en una prestación monetaria no retributiva mensual que se abonará a la persona gestante, desde el inicio de su embarazo hasta su interrupción o el nacimiento del hijo, siempre que no exceda de nueve (9) mensualidades, debiendo solicitarse a partir de la decimosegunda (12) semana de gestación.\" [ley_24714:L133-L135]\n\n3) Observaciones / Faltantes (si aplica):\n- No aplica.",
+      "retrieved_ids": [
+        "ley_24714",
+        "ley_1602-2009",
+        "ley_1667-2012"
+      ],
+      "expected_ids": [
+        "ley_1602-2009"
+      ],
+      "should_refuse": false
+    },
+    {
+      "id": "q4_tramite_embarazo",
+      "question": "¿Desde cuándo se puede tramitar la asignación por embarazo?",
+      "hit_rate": 1.0,
+      "precision_at_k": 0.3333333333333333,
+      "ndcg_at_k": 0.5,
+      "citation_present": true,
+      "citation_count": 1,
+      "keyword_coverage": 0.75,
+      "refusal_accurate": false,
+      "over_refusal": true,
+      "under_refusal": false,
+      "latency_ms": 6017.3,
+      "answer": "1) Respuesta:\nLa Asignación por Embarazo para Protección Social debe solicitarse a partir de la decimosegunda (12) semana de gestación.\n\n2) Evidencia (citas):\n- La Asignación por Embarazo para Protección Social consiste en una prestación monetaria mensual que se abona a la persona gestante, desde el inicio de su embarazo hasta su interrupción o el nacimiento, por un máximo de nueve (9) mensualidades. Se debe solicitar a partir de la decimosegunda (12) semana de gestación. [ley_24714:L129-L131]\n\n3) Observaciones / Faltantes (si aplica):\nNo surge de los documentos provistos si existen otros plazos o condiciones para el trámite más allá de la semana de gestación.",
+      "retrieved_ids": [
+        "ley_24714",
+        "ley_1667-2012",
+        "ley_1602-2009"
+      ],
+      "expected_ids": [
+        "ley_1602-2009"
+      ],
+      "should_refuse": false
+    },
+    {
+      "id": "q5_out_of_scope",
+      "question": "¿Cuáles son los requisitos para sacar el registro de conducir?",
+      "hit_rate": 1.0,
+      "precision_at_k": 1.0,
+      "ndcg_at_k": 1.0,
+      "citation_present": false,
+      "citation_count": 0,
+      "keyword_coverage": 1.0,
+      "refusal_accurate": true,
+      "over_refusal": false,
+      "under_refusal": false,
+      "latency_ms": 6542.0,
+      "answer": "1) Respuesta:\nSolo puedo responder consultas de Seguridad Social (ANSES).\n\n2) Evidencia (citas):\n- Los documentos provistos (`ley_1667-2012`, `ley_1602-2009`, `ley_24013`) tratan exclusivamente sobre asignaciones familiares, asignación universal por hijo y el régimen simplificado para pequeños contribuyentes (Monotributo), que son temas de seguridad social y ANSES.\n\n3) Observaciones / Faltantes (si aplica):\n- La consulta sobre los requisitos para sacar el registro de conducir no se relaciona con la seguridad social (ANSES) y, por lo tanto, no surge de la información contenida en los documentos provistos.",
+      "retrieved_ids": [
+        "ley_1667-2012",
+        "ley_1602-2009",
+        "ley_24013"
+      ],
+      "expected_ids": [],
+      "should_refuse": true
+    }
+  ]
+}
