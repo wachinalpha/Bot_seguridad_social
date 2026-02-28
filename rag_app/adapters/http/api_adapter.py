@@ -107,25 +107,27 @@ class APIAdapter:
                 session.add_message("user", request.query)
                 
                 # Process query
-                result: QueryResult = self.retrieval_service.query(request.query)
+                result: QueryResult = self.retrieval_service.query(request.query,top_k=3)
                 
                 # Add assistant response to history
                 session.add_message("assistant", result.answer)
-                session.last_law_id = result.law_document.id
+                if result.law_documents:
+                    session.last_law_id = result.law_documents[0].id
                 
                 # Convert domain model to API response
                 return ChatResponse(
                     answer=result.answer,
-                    law_document=LawDocumentResponse(
-                        id=result.law_document.id,
-                        titulo=result.law_document.titulo,
-                        url=result.law_document.url,
-                        summary=result.law_document.summary,
-                        metadata=result.law_document.metadata
-                    ),
+                    law_documents=[
+                        LawDocumentResponse(
+                            id=doc.id,
+                            titulo=doc.titulo,
+                            url=doc.url,
+                            summary=doc.summary,
+                            metadata=doc.metadata
+                        )
+                        for doc in result.law_documents
+                    ],
                     confidence_score=result.confidence_score,
-                    cache_used=result.cache_used,
-                    cache_id=result.cache_id,
                     response_time_ms=result.response_time_ms,
                     session_id=session.session_id
                 )

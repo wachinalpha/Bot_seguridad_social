@@ -20,7 +20,7 @@ echo ""
 
 # Check dependencies
 echo "✓ Dependencias instaladas:"
-python -c "import google.generativeai; print('  - google-generativeai:', google.generativeai.__version__)"
+python -c "import google.genai; print('  - google-genai: OK')"
 python -c "import streamlit; print('  - streamlit:', streamlit.__version__)"
 python -c "import chromadb; print('  - chromadb:', chromadb.__version__)"
 python -c "import docling; print('  - docling:', docling.__version__)"

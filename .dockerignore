@@ -31,5 +31,14 @@ rag_app/.venv/
 # Node
 node_modules/
 
+# Frontend (not needed in backend image)
+front/
+
+# Host scripts (not needed in image)
+scripts/
+
+# Tests and eval reports (not needed in image)
+tests/
+
 # Logs
 *.log

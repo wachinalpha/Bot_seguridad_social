@@ -27,10 +27,8 @@ export interface ChatMessage {
   timestamp: Date;
   sources?: string[]; // IDs of sources cited
   // Backend response metadata
-  lawDocument?: LawDocument;
+  lawDocuments?: LawDocument[];
   confidenceScore?: number;
-  cacheUsed?: boolean;
-  cacheId?: string;
   responseTimeMs?: number;
 }
 

@@ -1,271 +1,196 @@
-import google.generativeai as genai
-from google.generativeai import caching
-from typing import List, Optional
-from datetime import datetime, timedelta
+from google import genai
+from google.genai import types
 from pathlib import Path
+import json
 import logging
+import re
+from typing import Sequence
 
-from rag_app.domain.models import LawDocument, CacheSession
+from rag_app.domain.models import LawDocument
 from rag_app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
+_LEYES_CONFIG = Path(__file__).resolve().parents[2] / "config" / "leyes_config.json"
 
-class GeminiCacheManager:
-    """Adapter for managing Gemini API context caching with Free Tier fallback."""
+
+# ============================================================================
+# System Prompt (fijo, se envía como system_instruction)
+# ============================================================================
+SYSTEM_PROMPT = """\
+Eres un asistente legal especializado EXCLUSIVAMENTE en Seguridad Social de Argentina (ANSES, asignaciones familiares, AUH, prestaciones, regímenes vinculados).
+
+REGLA DE ALCANCE (SCOPE):
+- Solo puedes responder consultas relacionadas con seguridad social / ANSES.
+- Si la consulta NO está relacionada, responde únicamente:
+  "Solo puedo responder consultas de Seguridad Social (ANSES)."
+
+REGLAS DE FUENTES (GROUNDING):
+- Debes usar ÚNICAMENTE la información del bloque CONTEXTO provisto por el sistema (leyes/documentos).
+- NO uses conocimiento general, memoria, ni información externa.
+- NO inventes artículos, requisitos, definiciones, fechas, montos, procedimientos o excepciones.
+
+EVIDENCIA OBLIGATORIA:
+- Cada afirmación factual debe estar respaldada por evidencia textual del CONTEXTO.
+- Debes citar SIEMPRE la fuente con el formato exacto: [DOC_ID:Lx-Ly] (donde DOC_ID es el identificador del documento y Lx-Ly son las líneas aproximadas).
+- Si no existe evidencia suficiente en el CONTEXTO, responde:
+  "No surge de los documentos provistos."
+  y (opcional) pide qué documento/dato faltaría.
+
+REGLAS DE INTERPRETACIÓN:
+- Si hay ambigüedad (por ejemplo el caso del usuario no especifica datos clave), indícalo y formula preguntas puntuales, pero NO supongas.
+- Si hay conflicto entre documentos del CONTEXTO, indícalo explícitamente con citas y NO elijas arbitrariamente; explica ambas lecturas.
+- No combines reglas de distintos documentos como si fueran una sola norma. Si usas más de un documento, aclara qué aporta cada uno y cita ambos.
+
+FORMATO DE SALIDA:
+Siempre responde en español y con estas secciones:
+
+1) Respuesta (conclusión breve)
+2) Evidencia (citas): lista de fragmentos o referencias del CONTEXTO que sustentan la respuesta
+3) Observaciones / Faltantes (si aplica): qué parte no está cubierta por el CONTEXTO o qué datos faltan para decidir
+
+SEGURIDAD:
+- No brindes asesoramiento legal definitivo; expresa que la respuesta es informativa y depende del texto provisto.
+- No sugieras acciones fuera del CONTEXTO (por ejemplo trámites) si el CONTEXTO no los describe.
+"""
+
+
+# ============================================================================
+# Task Prompt (template, se arma con cada request)
+# ============================================================================
+TASK_PROMPT = """\
+CONSULTA DEL USUARIO:
+{query}
+
+INSTRUCCIONES DE RESPUESTA:
+- Responde SOLO con el CONTEXTO. No uses conocimiento externo.
+- Cita toda afirmación factual con el formato de cita del CONTEXTO.
+- Si la consulta NO es de seguridad social / ANSES: responde exactamente "Solo puedo responder consultas de Seguridad Social (ANSES)."
+- Si la respuesta no surge del CONTEXTO: responde "No surge de los documentos provistos."
+
+CONTEXTO (hasta 3 documentos recuperados por similitud):
+{context_docs}
+
+FORMATO DE SALIDA (obligatorio):
+1) Respuesta:
+<respuesta breve y directa>
+
+2) Evidencia (citas):
+- <punto de evidencia 1> [DOC_ID:Lx-Ly]
+- <punto de evidencia 2> [DOC_ID:Lx-Ly]
+...
+
+3) Observaciones / Faltantes (si aplica):
+- <ambigüedad o dato faltante> [cita si aplica]
+- <si no surge, indicar qué faltaría>
+"""
+
+
+class GeminiManager:
+    """Adapter for generating answers using Gemini API."""
     
     def __init__(self, api_key: str = None):
-        """
-        Initialize the Gemini cache manager.
-        
-        Args:
-            api_key: Gemini API key (defaults to settings)
-        """
         api_key = api_key or settings.gemini_api_key
-        genai.configure(api_key=api_key)
+        self.client = genai.Client(api_key=api_key)
         self.model_name = settings.llm_model
-        self.cache_ttl_minutes = settings.cache_ttl_minutes
-        self.caching_available = True  # Flag to track if caching is available
-        logger.info(f"Initialized GeminiCacheManager with model: {self.model_name}")
-    
-    def get_or_create_cache(self, law_doc: LawDocument) -> CacheSession:
+        self._url_map = self._build_url_map()
+        logger.info(f"Initialized GeminiManager with model: {self.model_name}")
+
+    @staticmethod
+    def _build_url_map() -> dict:
         """
-        Get existing cache or create new one for a law document.
+        Build a mapping from doc_id (ley_24714) → URL from leyes_config.json.
+        Falls back gracefully if the file is missing.
+        """
+        try:
+            with open(_LEYES_CONFIG, encoding="utf-8") as f:
+                config = json.load(f)
+            url_map = {}
+            for ley in config.get("leyes", []):
+                numero = ley.get("numero", "").strip()
+                url = ley.get("url", "").strip()
+                if numero and url:
+                    doc_id = f"ley_{numero}"
+                    url_map[doc_id] = url
+            logger.info(f"Loaded {len(url_map)} law URLs from leyes_config.json")
+            return url_map
+        except Exception as e:
+            logger.warning(f"Could not load leyes_config.json: {e}")
+            return {}
+
+    def _linkify_citations(self, text: str) -> str:
+        """
+        Replace inline citations like [ley_24714:L142-L147] with markdown links
+        that point to the official law URL.
+
+        Example:
+            [ley_24714:L142-L147]  →  [ley_24714:L142-L147](https://...)
+        """
+        # Matches: [ley_XXXX:Lx-Ly] or [ley_XXXX:Lx]
+        pattern = re.compile(r'\[(?P<citation>(ley_[\w\-]+):L[\d]+(?:-L[\d]+)?)\]')
+
+        def replace(m: re.Match) -> str:
+            citation = m.group("citation")
+            doc_id = m.group(2)        # e.g. ley_24714
+            url = self._url_map.get(doc_id)
+            if url:
+                return f"[{citation}]({url})"
+            return m.group(0)          # no URL found, leave as-is
+
+        return pattern.sub(replace, text)
+    
+    def generate_answer(self, query: str, law_docs: Sequence[LawDocument]) -> str:
+        """
+        Generate answer to a query using full law context from multiple documents.
         
         Args:
-            law_doc: LawDocument with file_path to the markdown content
-            
-        Returns:
-            CacheSession with cache metadata
-        """
-        try:
-            # Read markdown content
-            if not law_doc.file_path or not Path(law_doc.file_path).exists():
-                raise ValueError(f"File path not found: {law_doc.file_path}")
-            
-            content = Path(law_doc.file_path).read_text(encoding='utf-8')
-            content_hash = CacheSession.compute_content_hash(content)
-            
-            # Check for existing active caches
-            existing_cache = self._find_active_cache(law_doc.id, content_hash)
-            
-            if existing_cache:
-                logger.info(f"Reusing existing cache: {existing_cache.cache_id}")
-                return existing_cache
-            
-            # Create new cache
-            logger.info(f"Creating new cache for law {law_doc.id}")
-            cache_session = self._create_cache(law_doc, content, content_hash)
-            return cache_session
-            
-        except Exception as e:
-            logger.error(f"Error in get_or_create_cache for {law_doc.id}: {e}")
-            raise
-    
-    def _find_active_cache(self, law_id: str, content_hash: str) -> Optional[CacheSession]:
-        """Find an active cache for the given law and content hash."""
-        try:
-            # List all caches
-            caches = caching.CachedContent.list()
-            
-            for cache in caches:
-                # Check if cache metadata matches
-                if hasattr(cache, 'name') and hasattr(cache, 'expire_time'):
-                    # Parse cache name to extract law_id and content_hash
-                    # Expected format: "law_{law_id}_{content_hash[:8]}"
-                    cache_name_parts = cache.name.split('/')[-1].split('_')
-                    
-                    if len(cache_name_parts) >= 3:
-                        cached_law_id = f"{cache_name_parts[0]}_{cache_name_parts[1]}"
-                        cached_hash_prefix = cache_name_parts[2] if len(cache_name_parts) > 2 else ""
-                        
-                        # Check if it matches and is not expired
-                        if (cached_law_id == law_id and 
-                            content_hash.startswith(cached_hash_prefix)):
-                            
-                            expiration = cache.expire_time
-                            
-                            # Convert to datetime if needed
-                            if isinstance(expiration, str):
-                                expiration = datetime.fromisoformat(expiration.replace('Z', '+00:00'))
-                            
-                            # Check if not expired
-                            if expiration > datetime.now(expiration.tzinfo):
-                                return CacheSession(
-                                    cache_id=cache.name,
-                                    law_id=law_id,
-                                    content_hash=content_hash,
-                                    expiration_time=expiration.replace(tzinfo=None),
-                                    model_name=self.model_name
-                                )
-            
-            return None
-            
-        except Exception as e:
-            logger.warning(f"Error finding active cache: {e}")
-            return None
-    
-    def _create_cache(self, law_doc: LawDocument, content: str, content_hash: str) -> Optional[CacheSession]:
-        """Create a new cache in Gemini API (or None if caching unavailable)."""
-        
-        # Check if caching is available
-        if not self.caching_available:
-            logger.info("Caching disabled (Free Tier). Skipping cache creation.")
-            return None
-        
-        try:
-            # Prepare the system instruction
-            system_instruction = f"""Eres un asistente experto en leyes de Seguridad Social de Argentina.
-
-Tienes acceso al texto completo de la siguiente ley:
-- Título: {law_doc.titulo}
-- Número: {law_doc.metadata.get('numero', 'N/A')}
-
-Tu trabajo es responder preguntas sobre esta ley de manera precisa y profesional.
-Siempre cita los artículos específicos cuando sea relevante."""
-
-            # Create cached content
-            cache = caching.CachedContent.create(
-                model=self.model_name,
-                display_name=f"{law_doc.id}_{content_hash[:8]}",
-                system_instruction=system_instruction,
-                contents=[content],
-                ttl=timedelta(minutes=self.cache_ttl_minutes)
-            )
-            
-            # Calculate expiration time
-            expiration = datetime.now() + timedelta(minutes=self.cache_ttl_minutes)
-            
-            cache_session = CacheSession(
-                cache_id=cache.name,
-                law_id=law_doc.id,
-                content_hash=content_hash,
-                expiration_time=expiration,
-                model_name=self.model_name
-            )
-            
-            logger.info(f"Created cache {cache.name} for {law_doc.id}, expires at {expiration}")
-            return cache_session
-            
-        except Exception as e:
-            error_msg = str(e)
-            
-            # Detect Free Tier caching limit
-            if "429" in error_msg and "TotalCachedContentStorageTokensPerModelFreeTier" in error_msg:
-                logger.warning("⚠️  Context caching not available (Free Tier limit=0). Disabling caching globally.")
-                self.caching_available = False
-                return None
-            
-            logger.error(f"Error creating cache: {e}")
-            raise
-    
-    def generate_answer(self, cache_session: Optional[CacheSession], query: str, law_doc: LawDocument) -> str:
-        """
-        Generate answer to a query (with or without cached context).
-        
-        Args:
-            cache_session: Active cache session (None if caching unavailable)
             query: User's question
-            law_doc: Law document for fallback mode
+            law_docs: List of law documents with file_path to markdown content
             
         Returns:
             Generated answer from the LLM
         """
         try:
-            # Mode 1: Use cache if available
-            if cache_session is not None:
-                model = genai.GenerativeModel.from_cached_content(
-                    cached_content=cache_session.cache_id
-                )
-                response = model.generate_content(query)
-                logger.info(f"Generated answer using cache {cache_session.cache_id}")
-                return response.text
+            # Build context from all law documents
+            context_parts = []
             
-            # Mode 2: Fallback to direct model call (Free Tier)
-            else:
-                logger.info("Generating answer without cache (Free Tier mode)")
+            for law_doc in law_docs:
+                if not law_doc.file_path or not Path(law_doc.file_path).exists():
+                    logger.warning(f"File path not found: {law_doc.file_path}, skipping")
+                    continue
                 
-                # Read content directly
-                content = Path(law_doc.file_path).read_text(encoding='utf-8')
-                
-                # Create model with system instruction
-                system_instruction = f"""Eres un asistente experto en leyes de Seguridad Social de Argentina.
-
-Tienes acceso al texto completo de la siguiente ley:
-- Título: {law_doc.titulo}
-- Número: {law_doc.metadata.get('numero', 'N/A')}
-
-Tu trabajo es responder preguntas sobre esta ley de manera precisa y profesional.
-Siempre cita los artículos específicos cuando sea relevante."""
-                
-                model = genai.GenerativeModel(
-                    model_name=self.model_name,
-                    system_instruction=system_instruction
+                text = Path(law_doc.file_path).read_text(encoding='utf-8')
+                doc_id = law_doc.id
+                titulo = law_doc.titulo
+                context_parts.append(
+                    f"--- DOCUMENTO: {titulo} (ID: {doc_id}) ---\n{text}\n--- FIN: {doc_id} ---"
                 )
-                
-                # Generate response with full context
-                response = model.generate_content([content, query])
-                return response.text
+            
+            if not context_parts:
+                raise ValueError("No valid law documents found to generate context")
+            
+            context_docs = "\n\n".join(context_parts)
+            
+            # Build the task prompt with query and context
+            task_prompt = TASK_PROMPT.format(
+                query=query,
+                context_docs=context_docs,
+            )
+            
+            titles = ", ".join(d.titulo for d in law_docs)
+            logger.info(f"Generating answer using {len(context_parts)} laws: {titles}")
+
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=task_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                ),
+            )
+            
+            logger.info(f"Generated answer using {len(context_parts)} law(s)")
+            return self._linkify_citations(response.text)
             
         except Exception as e:
             logger.error(f"Error generating answer: {e}")
             raise
-    
-    def list_active_caches(self) -> List[CacheSession]:
-        """
-        List all active (non-expired) cache sessions.
-        
-        Returns:
-            List of active CacheSession instances
-        """
-        active_caches = []
-        
-        try:
-            caches = caching.CachedContent.list()
-            
-            for cache in caches:
-                if hasattr(cache, 'expire_time'):
-                    expiration = cache.expire_time
-                    
-                    if isinstance(expiration, str):
-                        expiration = datetime.fromisoformat(expiration.replace('Z', '+00:00'))
-                    
-                    if expiration > datetime.now(expiration.tzinfo):
-                        # Parse cache name to extract law_id
-                        cache_name_parts = cache.name.split('/')[-1].split('_')
-                        law_id = f"{cache_name_parts[0]}_{cache_name_parts[1]}" if len(cache_name_parts) >= 2 else "unknown"
-                        
-                        cache_session = CacheSession(
-                            cache_id=cache.name,
-                            law_id=law_id,
-                            content_hash="",  # We don't store this in the cache metadata
-                            expiration_time=expiration.replace(tzinfo=None),
-                            model_name=self.model_name
-                        )
-                        active_caches.append(cache_session)
-            
-            logger.info(f"Found {len(active_caches)} active caches")
-            return active_caches
-            
-        except Exception as e:
-            logger.error(f"Error listing caches: {e}")
-            return []
-    
-    def delete_cache(self, cache_id: str) -> bool:
-        """
-        Delete a specific cache from Gemini API.
-        
-        Args:
-            cache_id: Google cache identifier
-            
-        Returns:
-            True if deleted successfully, False otherwise
-        """
-        try:
-            cache = caching.CachedContent(name=cache_id)
-            cache.delete()
-            logger.info(f"Deleted cache {cache_id}")
-            return True
-        except Exception as e:
-            logger.error(f"Error deleting cache {cache_id}: {e}")
-            return False

@@ -1,0 +1,68 @@
+[
+    {
+        "id": "q1_trabajo_informal",
+        "question": "¿Puedo cobrar la AUH si tengo trabajo informal?",
+        "ground_truth": "Sí. Conforme el inc. c del art. 1 del Decreto 1602/2009, las mujeres embarazadas y los niños, niñas y adolescentes residentes en la República Argentina que pertenezcan a grupos familiares que se encuentren desocupados o se desempeñen en la economía informal son destinatarios de la Asignación por Embarazo para Protección Social y la Asignación Universal por Hijo para Protección Social.",
+        "expected_doc_ids": [
+            "ley_1602-2009"
+        ],
+        "expected_citations": [
+            "art. 1",
+            "inc. c",
+            "economía informal"
+        ],
+        "should_refuse": false
+    },
+    {
+        "id": "q2_edad_auh",
+        "question": "¿Hasta qué edad se cobra la AUH?",
+        "ground_truth": "La asignación por hijo se cobra por cada hijo menor de 18 años a cargo del trabajador (Art. 7). En caso de hijo con discapacidad, se abona sin límite de edad (Art. 8).",
+        "expected_doc_ids": [
+            "ley_24714"
+        ],
+        "expected_citations": [
+            "18 años",
+            "discapacidad",
+            "sin límite de edad"
+        ],
+        "should_refuse": false
+    },
+    {
+        "id": "q3_meses_embarazo",
+        "question": "¿Cuántos meses se cobra la asignación por embarazo?",
+        "ground_truth": "La Asignación por Embarazo para Protección Social se abona desde el inicio del embarazo hasta su interrupción o el nacimiento del hijo, siempre que no exceda de nueve (9) mensualidades (Art. 14 quater, Decreto 1602/2009).",
+        "expected_doc_ids": [
+            "ley_1602-2009"
+        ],
+        "expected_citations": [
+            "nueve",
+            "9",
+            "mensualidades",
+            "14 quater"
+        ],
+        "should_refuse": false
+    },
+    {
+        "id": "q4_tramite_embarazo",
+        "question": "¿Desde cuándo se puede tramitar la asignación por embarazo?",
+        "ground_truth": "A partir de la decimosegunda (12ª) semana de gestación (Art. 14 quater, Decreto 1602/2009).",
+        "expected_doc_ids": [
+            "ley_1602-2009"
+        ],
+        "expected_citations": [
+            "decimosegunda",
+            "12",
+            "semana de gestación",
+            "14 quater"
+        ],
+        "should_refuse": false
+    },
+    {
+        "id": "q5_out_of_scope",
+        "question": "¿Cuáles son los requisitos para sacar el registro de conducir?",
+        "ground_truth": "Solo puedo responder consultas de Seguridad Social (ANSES).",
+        "expected_doc_ids": [],
+        "expected_citations": [],
+        "should_refuse": true
+    }
+]

@@ -18,9 +18,8 @@ class Settings(BaseSettings):
     gemini_api_key: str
     
     # Model Configuration
-    embedding_model: str = "models/text-embedding-004"
-    llm_model: str = "gemini-2.5-flash"  # Gemini 2.5 con soporte completo de caching
-    cache_ttl_minutes: int = 60
+    embedding_model: str = "models/gemini-embedding-001"
+    llm_model: str = "gemini-2.5-flash"
     
     # Paths (support both relative and absolute for Docker compatibility)
     base_dir: Path = Path(__file__).parent.parent.parent
