@@ -14,6 +14,10 @@ Bot_seguridad_social.code-workspace
 
 # Project specific - Data and documents
 data/
+!data/
+data/*
+!data/corpora/
+!data/corpora/**
 Documentos_Anses/
 
 # Distribution / packaging
@@ -148,6 +152,7 @@ celerybeat.pid
 # Environments
 .env
 .envrc
+.env.example
 .venv
 env/
 venv/

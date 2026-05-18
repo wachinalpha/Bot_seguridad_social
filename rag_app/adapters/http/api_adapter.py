@@ -1,7 +1,6 @@
 """FastAPI adapter for HTTP REST API."""
 import logging
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
-from fastapi.responses import JSONResponse
 from typing import Optional
 from datetime import datetime
 from pathlib import Path
@@ -20,7 +19,6 @@ from rag_app.domain.api_schemas import (
 )
 from rag_app.domain.models import QueryResult, LawDocument
 from rag_app.services.retrieval_service import RetrievalService
-from rag_app.services.ingestion_service import IngestionService
 from rag_app.adapters.http.session_manager import SessionManager
 from rag_app.config.settings import settings
 
@@ -33,7 +31,7 @@ class APIAdapter:
     def __init__(
         self,
         retrieval_service: RetrievalService,
-        ingestion_service: IngestionService,
+        document_service,
         session_manager: Optional[SessionManager] = None
     ):
         """
@@ -41,11 +39,11 @@ class APIAdapter:
         
         Args:
             retrieval_service: Service for RAG queries
-            ingestion_service: Service for document ingestion
+            document_service: Optional service for future document management
             session_manager: Optional session manager for chat context
         """
         self.retrieval_service = retrieval_service
-        self.ingestion_service = ingestion_service
+        self.document_service = document_service
         self.session_manager = session_manager or SessionManager()
         
         # Create API router
@@ -261,7 +259,7 @@ class APIAdapter:
                     tmp_file_path = tmp_file.name
                 
                 try:
-                    # Process document using ingestion service
+                    # Process document using a future document service
                     law_doc = await self._process_uploaded_document(tmp_file_path, file.filename)
                     
                     return DocumentUploadResponse(
@@ -302,9 +300,9 @@ class APIAdapter:
             LawDocument instance
         """
         # For now, this is a simplified implementation
-        # You'll need to integrate with your ingestion service
+        # You'll need to integrate with a future document service
         
         raise HTTPException(
             status_code=501,
-            detail="Document upload not yet fully implemented. Use ingestion scripts for now."
+            detail="Document upload not yet fully implemented. Index a published corpus instead."
         )

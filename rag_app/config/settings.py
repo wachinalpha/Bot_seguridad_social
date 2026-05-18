@@ -1,7 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
-from typing import Optional
-import os
 
 
 class Settings(BaseSettings):
@@ -23,9 +21,8 @@ class Settings(BaseSettings):
     
     # Paths (support both relative and absolute for Docker compatibility)
     base_dir: Path = Path(__file__).parent.parent.parent
-    processed_docs_path: str = "data/processed"  # Can be overridden with absolute path
+    corpus_storage_path: str = "data/corpora"  # Can be overridden with absolute path
     chroma_db_path: str = "data/chroma_db"  # Can be overridden with absolute path
-    corpus_raw_path: str = "data/corpus_raw"  # Source documents for traceability
     
     # Corpus Versioning for ChromaDB collection isolation
     corpus_version: str = "v1"
@@ -54,12 +51,32 @@ class Settings(BaseSettings):
         return f"{self.chroma_collection_name}_{self.corpus_version}"
     
     @property
-    def processed_docs_path_resolved(self) -> Path:
-        """Resolve processed docs path (supports both relative and absolute)."""
-        path = Path(self.processed_docs_path)
+    def corpus_storage_path_resolved(self) -> Path:
+        """Resolve corpora root path (supports both relative and absolute)."""
+        path = Path(self.corpus_storage_path)
         if path.is_absolute():
             return path
         return self.base_dir / path
+
+    @property
+    def corpus_dir_resolved(self) -> Path:
+        """Resolve active corpus directory for the selected version."""
+        return self.corpus_storage_path_resolved / self.corpus_version
+
+    @property
+    def corpus_documents_path_resolved(self) -> Path:
+        """Resolve active corpus documents directory."""
+        return self.corpus_dir_resolved / "documents"
+
+    @property
+    def corpus_documents_index_path_resolved(self) -> Path:
+        """Resolve active corpus documents.json path."""
+        return self.corpus_dir_resolved / "documents.json"
+
+    @property
+    def corpus_manifest_path_resolved(self) -> Path:
+        """Resolve active corpus manifest.json path."""
+        return self.corpus_dir_resolved / "manifest.json"
     
     @property
     def chroma_db_path_resolved(self) -> Path:
@@ -69,20 +86,11 @@ class Settings(BaseSettings):
             return path
         return self.base_dir / path
     
-    @property
-    def corpus_raw_path_resolved(self) -> Path:
-        """Resolve corpus raw path (supports both relative and absolute)."""
-        path = Path(self.corpus_raw_path)
-        if path.is_absolute():
-            return path
-        return self.base_dir / path
-    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Create directories if they don't exist
-        self.processed_docs_path_resolved.mkdir(parents=True, exist_ok=True)
+        self.corpus_documents_path_resolved.mkdir(parents=True, exist_ok=True)
         self.chroma_db_path_resolved.mkdir(parents=True, exist_ok=True)
-        self.corpus_raw_path_resolved.mkdir(parents=True, exist_ok=True)
 
 
 # Global settings instance

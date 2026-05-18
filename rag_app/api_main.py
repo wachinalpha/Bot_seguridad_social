@@ -24,7 +24,6 @@ from rag_app.adapters.embedders.gemini_embedder import GeminiEmbedder
 from rag_app.adapters.stores.chroma_adapter import ChromaAdapter
 from rag_app.adapters.contextualizers.gemini_manager import GeminiManager
 from rag_app.services.retrieval_service import RetrievalService
-from rag_app.services.ingestion_service import IngestionService
 from rag_app.adapters.http.api_adapter import APIAdapter
 from rag_app.adapters.http.session_manager import SessionManager
 
@@ -64,16 +63,14 @@ async def lifespan(app: FastAPI):
             contextualizer=contextualizer
         )
         
-        # IngestionService is optional - document upload is a placeholder for now
-        # In production, you'd initialize with a document_processor adapter
-        ingestion_service = None  # Will be implemented when upload is fully functional
+        document_service = None
         
         session_manager = SessionManager(session_timeout_minutes=30)
         
         # Create API adapter
         api_adapter = APIAdapter(
             retrieval_service=retrieval_service,
-            ingestion_service=ingestion_service,
+            document_service=document_service,
             session_manager=session_manager
         )
         
@@ -123,7 +120,7 @@ app = FastAPI(
     Built with Hexagonal Architecture (Ports & Adapters) using:
     - Google Gemini API
     - ChromaDB (Vector Store)
-    - IBM Docling (Document Processing)
+    - External corpus published by anses-corpus
     """,
     lifespan=lifespan,
     docs_url="/docs",
