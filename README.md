@@ -9,32 +9,6 @@ Este repo ya no parsea fuentes legales ni genera Markdown desde URLs. Esa respon
 - app: `wachinalpha/Bot_seguridad_social`
 - corpus: `wachinalpha/anses-corpus`
 
-## Demo Windows
-
-Para usuarios no tecnicos en Windows:
-
-1. instalar Docker Desktop
-2. hacer doble click en `setup-demo.bat`
-
-Ese setup:
-
-- intenta instalar `WSL2` automaticamente si falta
-- pide permisos de administrador si son necesarios
-- si instala `WSL2`, pide reiniciar Windows y volver a ejecutar el setup
-- crea `.env` desde `.env.example` si falta
-- pide `GEMINI_API_KEY`
-- pide `GITHUB_TOKEN` si el repo `anses-corpus` es privado
-- descarga el corpus `v1`
-- resetea e indexa Chroma
-- levanta backend y frontend
-- abre `http://localhost:5173/`
-
-Scripts disponibles:
-
-- `setup-demo.bat`: instala y deja todo funcionando
-- `start-demo.bat`: vuelve a levantar la app
-- `stop-demo.bat`: baja la app
-
 ## Arquitectura
 
 ```text
