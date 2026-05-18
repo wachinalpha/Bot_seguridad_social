@@ -29,6 +29,48 @@ function Wait-For-Docker {
     exit 1
 }
 
+function Test-IsAdmin {
+    $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Install-WslIfMissing {
+    if (Test-Command 'wsl') {
+        & wsl --status *> $null
+        if ($LASTEXITCODE -eq 0) {
+            return $true
+        }
+    }
+
+    Write-Host ''
+    Write-Host 'WSL2 no esta instalado o no esta configurado.' -ForegroundColor Yellow
+    Write-Host 'Voy a intentar instalarlo automaticamente con permisos de administrador.' -ForegroundColor Yellow
+
+    if (-not (Test-IsAdmin)) {
+        $scriptPath = $MyInvocation.MyCommand.Path
+        $arguments = "-ExecutionPolicy Bypass -File `"$scriptPath`""
+        Start-Process powershell.exe -Verb RunAs -ArgumentList $arguments
+        Write-Host ''
+        Write-Host 'Se abrio una ventana de administrador para instalar WSL2.' -ForegroundColor Cyan
+        Write-Host 'Cuando termine la instalacion, reinicia Windows y volve a ejecutar setup-demo.bat.' -ForegroundColor Cyan
+        exit 0
+    }
+
+    wsl --install
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "`nERROR: No se pudo instalar WSL2 automaticamente." -ForegroundColor Red
+        Write-Host "Ejecuta 'wsl --install' en PowerShell como administrador y reinicia Windows." -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host ''
+    Write-Host 'WSL2 se instalo correctamente.' -ForegroundColor Green
+    Write-Host 'Es necesario reiniciar Windows antes de continuar.' -ForegroundColor Yellow
+    Write-Host 'Volve a ejecutar setup-demo.bat despues del reinicio.' -ForegroundColor Yellow
+    exit 0
+}
+
 function Ensure-EnvFile {
     $envPath = Join-Path $repoRoot '.env'
     $examplePath = Join-Path $repoRoot '.env.example'
@@ -89,14 +131,9 @@ Write-Host ''
 Write-Host '=== Bot Seguridad Social - Setup Demo ===' -ForegroundColor Cyan
 Write-Host ''
 
-Require-Command -Name 'wsl' -Message 'WSL no esta instalado. En Windows abri PowerShell como administrador y corre: wsl --install. Luego reinicia la PC.'
 Require-Command -Name 'docker' -Message 'Docker Desktop no esta instalado.'
 
-$wslStatus = & wsl --status 2>$null
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "`nERROR: WSL no parece estar configurado correctamente. Ejecuta 'wsl --install' como administrador y reinicia Windows." -ForegroundColor Red
-    exit 1
-}
+Install-WslIfMissing | Out-Null
 
 Wait-For-Docker
 

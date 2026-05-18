@@ -14,11 +14,13 @@ Este repo ya no parsea fuentes legales ni genera Markdown desde URLs. Esa respon
 Para usuarios no tecnicos en Windows:
 
 1. instalar Docker Desktop
-2. asegurarse de tener WSL2 habilitado
-3. hacer doble click en `setup-demo.bat`
+2. hacer doble click en `setup-demo.bat`
 
 Ese setup:
 
+- intenta instalar `WSL2` automaticamente si falta
+- pide permisos de administrador si son necesarios
+- si instala `WSL2`, pide reiniciar Windows y volver a ejecutar el setup
 - crea `.env` desde `.env.example` si falta
 - pide `GEMINI_API_KEY`
 - pide `GITHUB_TOKEN` si el repo `anses-corpus` es privado
