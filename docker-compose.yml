@@ -13,8 +13,7 @@ services:
     volumes:
       # Persistent data with version isolation
       - ./data/chroma_db:/app/data/chroma_db
-      - ./data/processed:/app/data/processed
-      - ./data/corpus_raw:/app/data/corpus_raw  # Source documents for traceability
+      - ./data/corpora:/app/data/corpora
       - ./data/logs:/app/data/logs
       # Code for hot reload (comment out for production)
       - ./rag_app:/app/rag_app
@@ -24,8 +23,7 @@ services:
     environment:
       # Paths with version isolation
       - CHROMA_DB_PATH=/app/data/chroma_db/${CORPUS_VERSION:-v1}
-      - PROCESSED_DOCS_PATH=/app/data/processed/${CORPUS_VERSION:-v1}
-      - CORPUS_RAW_PATH=/app/data/corpus_raw
+      - CORPUS_STORAGE_PATH=/app/data/corpora
       - CORPUS_VERSION=${CORPUS_VERSION:-v1}
       - HOST=0.0.0.0
       - PORT=8000
@@ -48,7 +46,7 @@ services:
       target: development
     container_name: bot-seguridad-frontend
     ports:
-      - "5173:3000"
+      - "5173:5173"
     volumes:
       # Code for hot module replacement
       - ./front:/app
@@ -65,35 +63,31 @@ services:
     restart: unless-stopped
 
   # ==========================================
-  # Ingest Job (One-off command)
+  # Corpus Tools: fetch + index jobs
   # ==========================================
-  ingest:
+  corpus-tools:
     build:
       context: .
       dockerfile: rag_app/Dockerfile
       target: development
-    container_name: bot-seguridad-ingest
+    container_name: bot-seguridad-corpus-tools
     volumes:
-      # Persistent data with version isolation (shared with backend)
       - ./data/chroma_db:/app/data/chroma_db
-      - ./data/processed:/app/data/processed
-      - ./data/corpus_raw:/app/data/corpus_raw  # Source documents
-      # Config for leyes_config.json
-      - ./rag_app/config:/app/rag_app/config
+      - ./data/corpora:/app/data/corpora
+      - ./data/logs:/app/data/logs
+      - ./rag_app:/app/rag_app
       - backend_venv:/app/rag_app/.venv
     env_file:
       - .env
     environment:
-      # Paths with version isolation
       - CHROMA_DB_PATH=/app/data/chroma_db/${CORPUS_VERSION:-v1}
-      - PROCESSED_DOCS_PATH=/app/data/processed/${CORPUS_VERSION:-v1}
-      - CORPUS_RAW_PATH=/app/data/corpus_raw
+      - CORPUS_STORAGE_PATH=/app/data/corpora
       - CORPUS_VERSION=${CORPUS_VERSION:-v1}
     networks:
       - bot-network
     profiles:
       - tools
-    command: uv run python /app/rag_app/scripts/setup_db.py
+    command: ["sleep", "infinity"]
 
 
 networks:
@@ -109,19 +103,17 @@ volumes:
 # Development:
 #   docker compose up --build
 #
-# Ingest documents:
-#   docker compose run --rm ingest
+# Fetch corpus release:
+#   docker compose run --rm corpus-tools uv run python /app/rag_app/scripts/fetch_corpus.py --version v1 --repo wachinalpha/anses-corpus
 #
 # Reset database for current version:
-#   docker compose run --rm ingest uv run python /app/rag_app/scripts/reset_db.py --force
-# Ingest single law:
-#   docker compose run --rm ingest uv run python /app/rag_app/scripts/ingest_single_law.py 24714
+#   docker compose run --rm corpus-tools uv run python /app/rag_app/scripts/reset_db.py --force
 #
-# Change corpus version (creates new isolated data):
-#   CORPUS_VERSION=v2 docker compose run --rm ingest
+# Index current corpus version:
+#   docker compose run --rm corpus-tools uv run python /app/rag_app/scripts/index_corpus.py --version v1
 #
 # List all versions:
-#   ls -l data/chroma_db/
+#   ls -l data/corpora/
 #
 # Stop services:
 #   docker compose down

@@ -1,0 +1,10 @@
+{
+  "corpus_version": "v1",
+  "built_at": "2026-05-18T21:14:48.368157+00:00",
+  "document_count": 9,
+  "failed_document_count": 3,
+  "format_version": 1,
+  "source_repo": "anses-corpus",
+  "source_commit": "9a0dd48b89b369ac857769f8ad7e205f405e21e4",
+  "source_catalog": "/home/emi/Documents/Exdata/anses-corpus/sources/leyes.yaml"
+}
