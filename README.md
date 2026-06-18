@@ -106,18 +106,18 @@ docker compose run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN corpus-tools \
   --repo wachinalpha/anses-corpus
 ```
 
-### Indexar corpus
-
-```bash
-docker compose run --rm corpus-tools \
-  uv run python /app/rag_app/scripts/index_corpus.py --version v1
-```
-
 ### Resetear indice
 
 ```bash
 docker compose run --rm corpus-tools \
   uv run python /app/rag_app/scripts/reset_db.py --force
+```
+
+### Indexar corpus
+
+```bash
+docker compose run --rm corpus-tools \
+  uv run python /app/rag_app/scripts/index_corpus.py --version v1
 ```
 
 ### Levantar servicios
@@ -172,6 +172,9 @@ CORPUS_VERSION=v2 docker compose run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN corpus-t
   uv run python /app/rag_app/scripts/fetch_corpus.py \
   --version v2 \
   --repo wachinalpha/anses-corpus
+
+CORPUS_VERSION=v2 docker compose run --rm corpus-tools \
+  uv run python /app/rag_app/scripts/reset_db.py --force
 
 CORPUS_VERSION=v2 docker compose run --rm corpus-tools \
   uv run python /app/rag_app/scripts/index_corpus.py --version v2
