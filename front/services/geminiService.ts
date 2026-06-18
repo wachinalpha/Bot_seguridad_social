@@ -5,7 +5,11 @@
  * All AI processing and RAG happens on the Python backend.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const configuredApiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+const API_ORIGIN = configuredApiUrl.endsWith('/api/v1')
+  ? configuredApiUrl.slice(0, -'/api/v1'.length)
+  : configuredApiUrl;
+const API_BASE_URL = `${API_ORIGIN}/api/v1`;
 
 export interface ChatRequest {
   query: string;
@@ -99,7 +103,7 @@ export const checkHealth = async (): Promise<{
   version: string;
   services: Record<string, string>;
 }> => {
-  const response = await fetch('http://localhost:8000/health');
+  const response = await fetch(`${API_ORIGIN}/health`);
 
   if (!response.ok) {
     throw new Error('Backend is not healthy');

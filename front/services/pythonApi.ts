@@ -4,7 +4,11 @@
  * Dado que usas Arquitectura Hexagonal, probablemente tengas endpoints REST (FastAPI/Flask).
  */
 
-const API_BASE_URL = 'http://localhost:8000/api/v1'; // Ajusta a tu puerto de Python
+const configuredApiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+const API_ORIGIN = configuredApiUrl.endsWith('/api/v1')
+  ? configuredApiUrl.slice(0, -'/api/v1'.length)
+  : configuredApiUrl;
+const API_BASE_URL = `${API_ORIGIN}/api/v1`;
 
 export const pythonApi = {
   // Enviar mensaje al modelo RAG en Python

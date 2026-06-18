@@ -64,7 +64,7 @@ const App: React.FC = () => {
 
       if (error instanceof Error) {
         if (error.message.includes('fetch')) {
-          errorText = '⚠️ No se pudo conectar con el servidor. Asegúrate de que el backend esté corriendo en http://localhost:8000';
+          errorText = '⚠️ No se pudo conectar con el servidor backend. Revisá la variable VITE_API_URL.';
         } else {
           errorText = `⚠️ Error: ${error.message}`;
         }
