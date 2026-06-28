@@ -111,34 +111,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
         </div>
 
         <div>
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">Configuración</h3>
-          <ul className="space-y-4">
-            <li className="flex items-center gap-3 text-slate-300 text-sm hover:text-brand-green cursor-pointer transition-colors group">
-              <svg className="w-4 h-4 group-hover:text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Chats</h3>
+            <span className="text-[10px] text-slate-500 uppercase tracking-wide">Demo</span>
+          </div>
+          <ul className="space-y-3">
+            <li className="flex items-center gap-3 text-slate-200 text-sm bg-white/5 border border-white/10 rounded-lg p-3">
+              <svg className="w-4 h-4 text-brand-green shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 4v-4z" />
               </svg>
-              Nueva Conversación
+              <div className="min-w-0">
+                <div className="font-medium truncate">Chat actual</div>
+                <div className="text-[10px] text-slate-500 mt-1">Sesión temporal</div>
+              </div>
             </li>
-            <li className="flex items-center gap-3 text-slate-300 text-sm hover:text-brand-green cursor-pointer transition-colors group">
-              <svg className="w-4 h-4 group-hover:text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              Historial Privado
+            <li className="flex items-center justify-between gap-3 text-slate-400 text-sm rounded-lg p-3 border border-dashed border-white/10">
+              <div className="flex items-center gap-3 min-w-0">
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="truncate">Nuevo chat</span>
+              </div>
+              <span className="text-[10px] text-slate-500 uppercase tracking-wide">Próximamente</span>
             </li>
           </ul>
         </div>
       </div>
 
       <div className="p-6 border-t border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-white font-bold">
-            EX
-          </div>
-          <div>
-            <p className="text-xs font-bold text-white uppercase tracking-tight">Usuario Pro</p>
-            <p className="text-[10px] text-slate-500">plan@exdata.com.ar</p>
-          </div>
-        </div>
+        <p className="text-[10px] text-slate-500 uppercase tracking-widest">Demo institucional</p>
       </div>
     </aside>
   );
