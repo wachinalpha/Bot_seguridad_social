@@ -94,6 +94,13 @@ Este repo versiona `data/corpora/v1` para facilitar demos y pruebas.
 - `CORPUS_STORAGE_PATH`: raiz local de corpora, por defecto `data/corpora`
 - `CHROMA_DB_PATH`: raiz de indices vectoriales, por defecto `data/chroma_db`
 - `GITHUB_TOKEN`: necesario para descargar releases de `anses-corpus` si el repo es privado
+- `EMBEDDING_PROVIDER`: provider de embeddings (`gemini` o `nvidia`)
+- `EMBEDDING_MODEL`: modelo de embeddings activo
+- `GENERATION_PROVIDER`: provider de generacion (`gemini` o `nvidia`)
+- `GENERATION_MODEL`: modelo de generacion activo
+- `NVIDIA_API_KEY`: necesario si se usa `nvidia` para embeddings o generacion
+
+El indice vectorial se aisla por version de corpus y modelo de embeddings. Cambiar `GENERATION_PROVIDER` o `GENERATION_MODEL` solo requiere reiniciar backend. Cambiar `EMBEDDING_PROVIDER` o `EMBEDDING_MODEL` requiere indexar ese corpus con ese embedding.
 
 ## Comandos utiles
 
@@ -118,6 +125,19 @@ docker compose run --rm corpus-tools \
 ```bash
 docker compose run --rm corpus-tools \
   uv run python /app/rag_app/scripts/index_corpus.py --version v1
+```
+
+### Indexar corpus con NVIDIA embeddings
+
+```bash
+docker compose run --rm \
+  -e EMBEDDING_PROVIDER=nvidia \
+  -e EMBEDDING_MODEL=nvidia/llama-nemotron-embed-1b-v2 \
+  corpus-tools \
+  uv run python /app/rag_app/scripts/index_corpus.py \
+  --version v1 \
+  --embedding-provider nvidia \
+  --embedding-model nvidia/llama-nemotron-embed-1b-v2
 ```
 
 ### Levantar servicios

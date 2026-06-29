@@ -8,16 +8,50 @@ from datetime import datetime
 # Chat Endpoints
 # ============================================================================
 
+class ModelSelection(BaseModel):
+    """Selected embedding and generation models for a chat request."""
+    embedding_provider: str
+    embedding_model: str
+    generation_provider: str
+    generation_model: str
+
+
+class ModelOptionResponse(BaseModel):
+    """Available model option for frontend selection."""
+    provider: str
+    model: str
+    label: str
+    index_id: Optional[str] = None
+    collection_name: Optional[str] = None
+    indexed_documents: Optional[int] = None
+
+
+class ModelsResponse(BaseModel):
+    """Current and available model configuration."""
+    active: ModelSelection
+    corpus_version: str
+    embedding_index_id: str
+    indexed_documents: int
+    embedding_models: List[ModelOptionResponse]
+    generation_models: List[ModelOptionResponse]
+
 class ChatRequest(BaseModel):
     """Request schema for /api/v1/chat endpoint."""
     query: str = Field(..., description="User's question about legal documents", min_length=1)
     session_id: Optional[str] = Field(None, description="Session ID for conversation context")
+    model_selection: Optional[ModelSelection] = Field(None, description="Optional model selection override")
     
     class Config:
         json_schema_extra = {
             "example": {
                 "query": "¿Cuáles son los requisitos para jubilarse?",
-                "session_id": "user-session-123"
+                "session_id": "user-session-123",
+                "model_selection": {
+                    "embedding_provider": "gemini",
+                    "embedding_model": "models/gemini-embedding-001",
+                    "generation_provider": "gemini",
+                    "generation_model": "gemini-2.5-flash"
+                }
             }
         }
 

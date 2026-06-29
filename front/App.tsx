@@ -3,7 +3,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
 import { ChatMessage, MessageRole } from './types';
-import { sendChatMessage } from './services/geminiService';
+import { ModelSelection, sendChatMessage } from './services/geminiService';
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+  const [modelSelection, setModelSelection] = useState<ModelSelection | undefined>(undefined);
 
   // Generate a session ID on first mount
   useEffect(() => {
@@ -38,7 +39,7 @@ const App: React.FC = () => {
 
     try {
       // Call the real backend API
-      const response = await sendChatMessage(text, sessionId);
+      const response = await sendChatMessage(text, sessionId, modelSelection);
 
       // Update session ID from backend response
       if (response.session_id && !sessionId) {
@@ -80,13 +81,15 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, modelSelection]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900">
       <Sidebar
         isOpen={isSidebarOpen}
         toggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        selectedModels={modelSelection}
+        onModelSelectionChange={setModelSelection}
       />
 
       <main className="flex-1 flex flex-col relative">

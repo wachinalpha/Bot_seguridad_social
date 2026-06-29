@@ -12,8 +12,17 @@ logger = logging.getLogger(__name__)
 class ChromaAdapter:
     """Adapter for vector storage using ChromaDB."""
     
-    def __init__(self):
+    def __init__(
+        self,
+        embedding_provider: str | None = None,
+        embedding_model: str | None = None,
+        create_collection: bool = True,
+    ):
         """Initialize ChromaDB client and collection."""
+        self.embedding_provider = settings.normalize_provider(embedding_provider or settings.active_embedding_provider)
+        self.embedding_model = embedding_model or settings.active_embedding_model
+        self.index_id = settings.embedding_index_id(self.embedding_provider, self.embedding_model)
+
         # Use resolved path (supports both relative and absolute)
         chroma_path = settings.chroma_db_path_resolved
         
@@ -23,18 +32,30 @@ class ChromaAdapter:
         )
         
         # Use versioned collection name for corpus isolation
-        collection_name = settings.chroma_collection_name_versioned
+        collection_name = settings.chroma_collection_name_for(self.embedding_provider, self.embedding_model)
         
-        self.collection = self.client.get_or_create_collection(
-            name=collection_name,
-            metadata={
-                "description": "Legal documents for RAG system",
-                "corpus_version": settings.corpus_version
-            }
-        )
+        if create_collection:
+            self.collection = self.client.get_or_create_collection(
+                name=collection_name,
+                metadata={
+                    "description": "Legal documents for RAG system",
+                    "corpus_version": settings.corpus_version,
+                    "embedding_provider": self.embedding_provider,
+                    "embedding_model": self.embedding_model,
+                    "embedding_index_id": self.index_id,
+                }
+            )
+        else:
+            try:
+                self.collection = self.client.get_collection(name=collection_name)
+            except Exception:
+                self.collection = None
         
         logger.info(f"Initialized ChromaDB at {chroma_path}")
-        logger.info(f"Collection: {collection_name} (version: {settings.corpus_version})")
+        logger.info(
+            f"Collection: {collection_name} "
+            f"(version: {settings.corpus_version}, embedding: {self.embedding_provider}/{self.embedding_model})"
+        )
     
     def save_document(self, law_doc: LawDocument, embedding: List[float]) -> None:
         """
@@ -51,6 +72,10 @@ class ChromaAdapter:
                 "url": law_doc.url,
                 "file_path": law_doc.file_path or "",
                 "summary": law_doc.summary or "",
+                "corpus_version": settings.corpus_version,
+                "embedding_provider": self.embedding_provider,
+                "embedding_model": self.embedding_model,
+                "embedding_index_id": self.index_id,
             }
             
             # Add additional metadata from law_doc.metadata
@@ -86,6 +111,9 @@ class ChromaAdapter:
             List of most similar LawDocument instances
         """
         try:
+            if self.collection is None:
+                return []
+
             results = self.collection.query(
                 query_embeddings=[query_embedding],
                 n_results=top_k
@@ -132,6 +160,9 @@ class ChromaAdapter:
             LawDocument if found, None otherwise
         """
         try:
+            if self.collection is None:
+                return None
+
             results = self.collection.get(ids=[doc_id])
             
             if results['ids'] and len(results['ids']) > 0:
@@ -168,6 +199,9 @@ class ChromaAdapter:
             True if deleted successfully, False otherwise
         """
         try:
+            if self.collection is None:
+                return False
+
             self.collection.delete(ids=[doc_id])
             logger.info(f"Deleted document {doc_id}")
             return True
@@ -182,6 +216,8 @@ class ChromaAdapter:
         Returns:
             Number of documents
         """
+        if self.collection is None:
+            return 0
         return self.collection.count()
     
     def get_all_document_ids(self) -> List[str]:
@@ -192,6 +228,9 @@ class ChromaAdapter:
             List of document IDs
         """
         try:
+            if self.collection is None:
+                return []
+
             # Get all documents without filtering
             results = self.collection.get()
             return results['ids'] if results['ids'] else []
@@ -227,4 +266,3 @@ class ChromaAdapter:
         except Exception as e:
             logger.error(f"Error deleting all documents: {e}")
             raise
-

@@ -12,11 +12,11 @@ const API_BASE_URL = `${API_ORIGIN}/api/v1`;
 
 export const pythonApi = {
   // Enviar mensaje al modelo RAG en Python
-  chat: async (query: string, session_id?: string) => {
+  chat: async (query: string, session_id?: string, model_selection?: unknown) => {
     const response = await fetch(`${API_BASE_URL}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, session_id }),
+      body: JSON.stringify({ query, session_id, model_selection }),
     });
     return response.json();
   },
@@ -36,6 +36,11 @@ export const pythonApi = {
   // Obtener documentos indexados
   getDocuments: async () => {
     const response = await fetch(`${API_BASE_URL}/documents`);
+    return response.json();
+  },
+
+  getModels: async () => {
+    const response = await fetch(`${API_BASE_URL}/models`);
     return response.json();
   }
 };

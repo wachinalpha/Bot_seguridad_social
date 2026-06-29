@@ -15,6 +15,14 @@ class EmbedderPort(Protocol):
             List of floats representing the embedding vector
         """
         ...
+
+    def embed_query(self, text: str) -> List[float]:
+        """Generate an embedding for a user query."""
+        ...
+
+    def embed_document(self, text: str) -> List[float]:
+        """Generate an embedding for an indexed document."""
+        ...
     
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
         """

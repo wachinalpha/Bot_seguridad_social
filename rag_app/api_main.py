@@ -20,10 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from rag_app.config.settings import settings
 from rag_app.utils.logger import configure_logging
-from rag_app.adapters.embedders.gemini_embedder import GeminiEmbedder
-from rag_app.adapters.stores.chroma_adapter import ChromaAdapter
-from rag_app.adapters.contextualizers.gemini_manager import GeminiManager
-from rag_app.services.retrieval_service import RetrievalService
+from rag_app.adapters.model_factories import create_retrieval_service
 from rag_app.adapters.http.api_adapter import APIAdapter
 from rag_app.adapters.http.session_manager import SessionManager
 
@@ -52,16 +49,8 @@ async def lifespan(app: FastAPI):
     try:
         # Initialize services with dependency injection
         logger.info("Initializing services...")
-        embedder = GeminiEmbedder()
-        vector_store = ChromaAdapter()
-        contextualizer = GeminiManager()
-        
-        # Create application services
-        retrieval_service = RetrievalService(
-            embedder=embedder,
-            vector_store=vector_store,
-            contextualizer=contextualizer
-        )
+        retrieval_service = create_retrieval_service()
+        vector_store = retrieval_service.vector_store
         
         document_service = None
         
@@ -90,6 +79,10 @@ async def lifespan(app: FastAPI):
         )
         
         logger.info("✅ All services initialized successfully")
+        logger.info(
+            f"🧠 Models: embedding={settings.active_embedding_provider}/{settings.active_embedding_model}, "
+            f"generation={settings.active_generation_provider}/{settings.active_generation_model}"
+        )
         logger.info(f"📊 Indexed documents: {vector_store.count_documents()}")
         logger.info(f"🌐 Server ready at http://{settings.api_host}:{settings.api_port}")
         logger.info(f"📖 API docs at http://{settings.api_host}:{settings.api_port}/docs")
@@ -118,7 +111,7 @@ app = FastAPI(
     
     ## Architecture
     Built with Hexagonal Architecture (Ports & Adapters) using:
-    - Google Gemini API
+    - Configurable AI providers (Gemini/NVIDIA)
     - ChromaDB (Vector Store)
     - External corpus published by anses-corpus
     """,

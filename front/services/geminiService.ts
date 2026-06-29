@@ -14,6 +14,32 @@ const API_BASE_URL = `${API_ORIGIN}/api/v1`;
 export interface ChatRequest {
   query: string;
   session_id?: string;
+  model_selection?: ModelSelection;
+}
+
+export interface ModelSelection {
+  embedding_provider: string;
+  embedding_model: string;
+  generation_provider: string;
+  generation_model: string;
+}
+
+export interface ModelOption {
+  provider: string;
+  model: string;
+  label: string;
+  index_id?: string | null;
+  collection_name?: string | null;
+  indexed_documents?: number | null;
+}
+
+export interface ModelsResponse {
+  active: ModelSelection;
+  corpus_version: string;
+  embedding_index_id: string;
+  indexed_documents: number;
+  embedding_models: ModelOption[];
+  generation_models: ModelOption[];
 }
 
 export interface LawDocument {
@@ -48,7 +74,8 @@ export interface DocumentListResponse {
  */
 export const sendChatMessage = async (
   query: string,
-  sessionId?: string
+  sessionId?: string,
+  modelSelection?: ModelSelection
 ): Promise<ChatResponse> => {
   const response = await fetch(`${API_BASE_URL}/chat`, {
     method: 'POST',
@@ -58,12 +85,26 @@ export const sendChatMessage = async (
     body: JSON.stringify({
       query,
       session_id: sessionId,
+      model_selection: modelSelection,
     }),
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Unknown error' }));
     throw new Error(error.message || `HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * Get active and available AI models
+ */
+export const getModels = async (): Promise<ModelsResponse> => {
+  const response = await fetch(`${API_BASE_URL}/models`);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
 
   return response.json();

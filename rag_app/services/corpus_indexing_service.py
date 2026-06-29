@@ -53,6 +53,7 @@ class CorpusIndexingService:
             },
         )
 
-        embedding = self.embedder.embed_text(law_document.searchable_text)
+        embed_document = getattr(self.embedder, "embed_document", self.embedder.embed_text)
+        embedding = embed_document(law_document.searchable_text)
         self.vector_store.save_document(law_document, embedding)
         return law_document

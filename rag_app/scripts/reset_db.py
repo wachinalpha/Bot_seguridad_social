@@ -38,8 +38,9 @@ def confirm_reset() -> bool:
         True if user confirms, False otherwise
     """
     print("\n⚠️  WARNING: This will DELETE ALL documents from the vector database!")
-    print(f"   Database location: {settings.chroma_db_path}")
-    print(f"   Collection: {settings.chroma_collection_name}\n")
+    print(f"   Database location: {settings.chroma_db_path_resolved}")
+    print(f"   Collection: {settings.chroma_collection_name_versioned}")
+    print(f"   Embedding index: {settings.active_embedding_index_id}\n")
     
     response = input("Are you sure you want to continue? Type 'yes' to confirm: ")
     return response.lower() == 'yes'

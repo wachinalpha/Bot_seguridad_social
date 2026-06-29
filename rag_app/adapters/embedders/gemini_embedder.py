@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class GeminiEmbedder:
     """Adapter for generating embeddings using Gemini API."""
     
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str = None, model_name: str | None = None):
         """
         Initialize the Gemini embedder.
         
@@ -19,8 +19,10 @@ class GeminiEmbedder:
             api_key: Gemini API key (defaults to settings)
         """
         api_key = api_key or settings.gemini_api_key
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY is required for Gemini embeddings")
         self.client = genai.Client(api_key=api_key)
-        self.model_name = settings.embedding_model
+        self.model_name = model_name or settings.active_embedding_model
         logger.info(f"Initialized GeminiEmbedder with model: {self.model_name}")
     
     def embed_text(self, text: str) -> List[float]:
@@ -42,6 +44,12 @@ class GeminiEmbedder:
         except Exception as e:
             logger.error(f"Error embedding text: {e}")
             raise
+
+    def embed_query(self, text: str) -> List[float]:
+        return self.embed_text(text)
+
+    def embed_document(self, text: str) -> List[float]:
+        return self.embed_text(text)
     
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
         """

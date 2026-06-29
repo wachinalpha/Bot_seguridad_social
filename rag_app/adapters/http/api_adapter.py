@@ -15,12 +15,21 @@ from rag_app.domain.api_schemas import (
     DocumentDetailResponse,
     HealthResponse,
     ErrorResponse,
-    LawDocumentResponse
+    LawDocumentResponse,
+    ModelOptionResponse,
+    ModelsResponse,
+    ModelSelection,
 )
 from rag_app.domain.models import QueryResult, LawDocument
 from rag_app.services.retrieval_service import RetrievalService
 from rag_app.adapters.http.session_manager import SessionManager
 from rag_app.config.settings import settings
+from rag_app.adapters.model_factories import (
+    create_retrieval_service,
+    get_embedding_model_options,
+    get_generation_model_options,
+)
+from rag_app.adapters.stores.chroma_adapter import ChromaAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +54,7 @@ class APIAdapter:
         self.retrieval_service = retrieval_service
         self.document_service = document_service
         self.session_manager = session_manager or SessionManager()
+        self._retrieval_service_cache: dict[tuple[str, str, str, str], RetrievalService] = {}
         
         # Create API router
         self.router = APIRouter()
@@ -53,6 +63,49 @@ class APIAdapter:
         self._register_routes()
         
         logger.info("APIAdapter initialized")
+
+    def _get_retrieval_service(self, selection: ModelSelection | None) -> RetrievalService:
+        if selection is None:
+            return self.retrieval_service
+
+        key = (
+            settings.normalize_provider(selection.embedding_provider),
+            selection.embedding_model,
+            settings.normalize_provider(selection.generation_provider),
+            selection.generation_model,
+        )
+
+        if key not in self._retrieval_service_cache:
+            self._retrieval_service_cache[key] = create_retrieval_service(
+                embedding_provider=key[0],
+                embedding_model=key[1],
+                generation_provider=key[2],
+                generation_model=key[3],
+            )
+
+        return self._retrieval_service_cache[key]
+
+    def _model_option_response(self, option, include_index: bool) -> ModelOptionResponse:
+        if not include_index:
+            return ModelOptionResponse(
+                provider=option.provider,
+                model=option.model,
+                label=option.label,
+            )
+
+        vector_store = ChromaAdapter(
+            embedding_provider=option.provider,
+            embedding_model=option.model,
+            create_collection=False,
+        )
+        return ModelOptionResponse(
+            provider=option.provider,
+            model=option.model,
+            label=option.label,
+            index_id=vector_store.index_id,
+            collection_name=settings.chroma_collection_name_for(option.provider, option.model),
+            indexed_documents=vector_store.count_documents(),
+        )
     
     def _register_routes(self):
         """Register all API routes."""
@@ -81,6 +134,40 @@ class APIAdapter:
             except Exception as e:
                 logger.error(f"Health check failed: {e}")
                 raise HTTPException(status_code=503, detail="Service unhealthy")
+
+        @self.router.get(
+            "/models",
+            response_model=ModelsResponse,
+            tags=["System"],
+            summary="Get active and available model configuration"
+        )
+        async def get_models():
+            """Return current model configuration and available model options."""
+            try:
+                active = ModelSelection(
+                    embedding_provider=settings.active_embedding_provider,
+                    embedding_model=settings.active_embedding_model,
+                    generation_provider=settings.active_generation_provider,
+                    generation_model=settings.active_generation_model,
+                )
+
+                return ModelsResponse(
+                    active=active,
+                    corpus_version=settings.corpus_version,
+                    embedding_index_id=settings.active_embedding_index_id,
+                    indexed_documents=self.retrieval_service.vector_store.count_documents(),
+                    embedding_models=[
+                        self._model_option_response(option, include_index=True)
+                        for option in get_embedding_model_options()
+                    ],
+                    generation_models=[
+                        self._model_option_response(option, include_index=False)
+                        for option in get_generation_model_options()
+                    ],
+                )
+            except Exception as e:
+                logger.error(f"Error getting model configuration: {e}", exc_info=True)
+                raise HTTPException(status_code=500, detail=f"Error retrieving models: {str(e)}")
         
         # Chat endpoint
         @self.router.post(
@@ -105,7 +192,8 @@ class APIAdapter:
                 session.add_message("user", request.query)
                 
                 # Process query
-                result: QueryResult = self.retrieval_service.query(request.query,top_k=3)
+                retrieval_service = self._get_retrieval_service(request.model_selection)
+                result: QueryResult = retrieval_service.query(request.query,top_k=3)
                 
                 # Add assistant response to history
                 session.add_message("assistant", result.answer)

@@ -1,10 +1,19 @@
 
 import React, { useEffect, useState } from 'react';
-import { getDocuments, checkHealth } from '../services/geminiService';
+import {
+  checkHealth,
+  getDocuments,
+  getModels,
+  ModelOption,
+  ModelsResponse,
+  ModelSelection,
+} from '../services/geminiService';
 
 interface SidebarProps {
   isOpen: boolean;
   toggle: () => void;
+  selectedModels?: ModelSelection;
+  onModelSelectionChange: (selection: ModelSelection) => void;
 }
 
 interface Document {
@@ -15,15 +24,28 @@ interface Document {
   categoria?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
+type SidebarTab = 'documents' | 'models';
+
+const optionKey = (option: Pick<ModelOption, 'provider' | 'model'>) => `${option.provider}::${option.model}`;
+
+export const Sidebar: React.FC<SidebarProps> = ({
+  isOpen,
+  toggle,
+  selectedModels,
+  onModelSelectionChange,
+}) => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
   const [isBackendHealthy, setIsBackendHealthy] = useState<boolean | null>(null);
+  const [activeTab, setActiveTab] = useState<SidebarTab>('documents');
+  const [modelsConfig, setModelsConfig] = useState<ModelsResponse | null>(null);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       loadDocuments();
       checkBackendHealth();
+      loadModels();
     }
   }, [isOpen]);
 
@@ -47,6 +69,48 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
     } catch (error) {
       setIsBackendHealthy(false);
     }
+  };
+
+  const loadModels = async () => {
+    setIsLoadingModels(true);
+    try {
+      const response = await getModels();
+      setModelsConfig(response);
+      if (!selectedModels) {
+        onModelSelectionChange(response.active);
+      }
+    } catch (error) {
+      console.error('Error loading models:', error);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
+  const currentSelection = selectedModels || modelsConfig?.active;
+  const selectedEmbedding = modelsConfig?.embedding_models.find((option) => (
+    currentSelection && option.provider === currentSelection.embedding_provider && option.model === currentSelection.embedding_model
+  ));
+
+  const handleEmbeddingChange = (value: string) => {
+    const option = modelsConfig?.embedding_models.find((candidate) => optionKey(candidate) === value);
+    if (!option || !currentSelection) return;
+
+    onModelSelectionChange({
+      ...currentSelection,
+      embedding_provider: option.provider,
+      embedding_model: option.model,
+    });
+  };
+
+  const handleGenerationChange = (value: string) => {
+    const option = modelsConfig?.generation_models.find((candidate) => optionKey(candidate) === value);
+    if (!option || !currentSelection) return;
+
+    onModelSelectionChange({
+      ...currentSelection,
+      generation_provider: option.provider,
+      generation_model: option.model,
+    });
   };
 
   return (
@@ -83,30 +147,104 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
           </span>
         </div>
 
-        {/* Documents Section */}
         <div>
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">
-            Documentos Indexados ({documents.length})
-          </h3>
-          {isLoadingDocs ? (
-            <div className="text-slate-400 text-sm">Cargando...</div>
-          ) : documents.length > 0 ? (
-            <ul className="space-y-3 max-h-64 overflow-y-auto">
-              {documents.map((doc) => (
-                <li
-                  key={doc.id}
-                  className="text-slate-300 text-xs hover:text-brand-green cursor-pointer transition-colors group p-2 rounded hover:bg-white/5"
-                  title={doc.summary || doc.titulo}
-                >
-                  <div className="font-medium truncate">{doc.titulo}</div>
-                  {doc.categoria && (
-                    <div className="text-[10px] text-slate-500 mt-1">{doc.categoria}</div>
-                  )}
-                </li>
-              ))}
-            </ul>
+          <div className="grid grid-cols-2 gap-2 mb-4 rounded-xl bg-white/5 p-1 border border-white/10">
+            <button
+              onClick={() => setActiveTab('documents')}
+              className={`px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors ${activeTab === 'documents' ? 'bg-brand-green text-brand-navy' : 'text-slate-400 hover:text-white'}`}
+            >
+              Documentos
+            </button>
+            <button
+              onClick={() => setActiveTab('models')}
+              className={`px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors ${activeTab === 'models' ? 'bg-brand-green text-brand-navy' : 'text-slate-400 hover:text-white'}`}
+            >
+              Modelos
+            </button>
+          </div>
+
+          {activeTab === 'documents' ? (
+            <div>
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">
+                Documentos Indexados ({documents.length})
+              </h3>
+              {isLoadingDocs ? (
+                <div className="text-slate-400 text-sm">Cargando...</div>
+              ) : documents.length > 0 ? (
+                <ul className="space-y-3 max-h-64 overflow-y-auto">
+                  {documents.map((doc) => (
+                    <li
+                      key={doc.id}
+                      className="text-slate-300 text-xs hover:text-brand-green cursor-pointer transition-colors group p-2 rounded hover:bg-white/5"
+                      title={doc.summary || doc.titulo}
+                    >
+                      <div className="font-medium truncate">{doc.titulo}</div>
+                      {doc.categoria && (
+                        <div className="text-[10px] text-slate-500 mt-1">{doc.categoria}</div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-slate-400 text-xs">No hay documentos indexados</div>
+              )}
+            </div>
           ) : (
-            <div className="text-slate-400 text-xs">No hay documentos indexados</div>
+            <div className="space-y-4">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Selección de modelos</h3>
+              {isLoadingModels ? (
+                <div className="text-slate-400 text-sm">Cargando modelos...</div>
+              ) : modelsConfig && currentSelection ? (
+                <>
+                  <label className="block space-y-2">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest">Embeddings</span>
+                    <select
+                      value={optionKey({ provider: currentSelection.embedding_provider, model: currentSelection.embedding_model })}
+                      onChange={(event) => handleEmbeddingChange(event.target.value)}
+                      className="w-full bg-slate-950 border border-white/10 text-slate-200 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-brand-green"
+                    >
+                      {modelsConfig.embedding_models.map((option) => (
+                        <option key={optionKey(option)} value={optionKey(option)}>
+                          {option.label} ({option.indexed_documents ?? 0} docs)
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest">Generación</span>
+                    <select
+                      value={optionKey({ provider: currentSelection.generation_provider, model: currentSelection.generation_model })}
+                      onChange={(event) => handleGenerationChange(event.target.value)}
+                      className="w-full bg-slate-950 border border-white/10 text-slate-200 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-brand-green"
+                    >
+                      {modelsConfig.generation_models.map((option) => (
+                        <option key={optionKey(option)} value={optionKey(option)}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[10px] text-slate-500 uppercase tracking-widest">Corpus</span>
+                      <span className="text-xs text-slate-300">{modelsConfig.corpus_version}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 break-all">
+                      Índice: {selectedEmbedding?.index_id || modelsConfig.embedding_index_id}
+                    </div>
+                    {selectedEmbedding?.indexed_documents === 0 && (
+                      <p className="text-[11px] leading-relaxed text-amber-300">
+                        Este embedding todavía no tiene corpus indexado. Hay que correr index_corpus antes de usarlo.
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-slate-400 text-xs">No se pudo cargar la configuración de modelos</div>
+              )}
+            </div>
           )}
         </div>
 

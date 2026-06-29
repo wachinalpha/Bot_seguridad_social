@@ -70,7 +70,8 @@ class RetrievalService:
         try:
             # Step 1: Embed query
             logger.info("Step 1: Embedding query")
-            query_embedding = self.embedder.embed_text(user_query)
+            embed_query = getattr(self.embedder, "embed_query", self.embedder.embed_text)
+            query_embedding = embed_query(user_query)
             
             # Step 2: Search for relevant laws (fetch extra candidates for reranking)
             logger.info("Step 2: Searching vector store")
