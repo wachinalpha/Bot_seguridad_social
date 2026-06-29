@@ -1,0 +1,19 @@
+{
+    email {$ACME_EMAIL:admin@example.com}
+}
+
+{$BOT_DOMAIN:example.com} {
+    encode gzip zstd
+
+    # Para activar acceso con usuario/password, generar hash con:
+    # docker run --rm caddy:2-alpine caddy hash-password --plaintext 'PASSWORD'
+    # y descomentar este bloque:
+    # basicauth {
+    #     usuario HASH_GENERADO
+    # }
+
+    @backend path /api/* /health /docs* /redoc* /openapi.json
+    reverse_proxy @backend backend:8000
+
+    reverse_proxy frontend:5173
+}

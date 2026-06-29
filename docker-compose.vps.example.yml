@@ -1,0 +1,107 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: bot-seguridad-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - BOT_DOMAIN=${BOT_DOMAIN:-example.com}
+      - ACME_EMAIL=${ACME_EMAIL:-admin@example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks:
+      - bot-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: rag_app/Dockerfile
+      target: development
+    container_name: bot-seguridad-backend
+    expose:
+      - "8000"
+    volumes:
+      - ./data/chroma_db:/app/data/chroma_db
+      - ./data/corpora:/app/data/corpora
+      - ./data/logs:/app/data/logs
+      - ./rag_app:/app/rag_app
+      - backend_venv:/app/rag_app/.venv
+    env_file:
+      - .env
+    environment:
+      - CHROMA_DB_PATH=/app/data/chroma_db/${CORPUS_VERSION:-v1}
+      - CORPUS_STORAGE_PATH=/app/data/corpora
+      - CORPUS_VERSION=${CORPUS_VERSION:-v1}
+      - API_CORS_ORIGINS=["https://${BOT_DOMAIN:-example.com}","http://localhost:5173"]
+      - HOST=0.0.0.0
+      - PORT=8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - bot-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./front
+      target: development
+    container_name: bot-seguridad-frontend
+    expose:
+      - "5173"
+    volumes:
+      - ./front:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=https://${BOT_DOMAIN:-example.com}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - bot-network
+    restart: unless-stopped
+
+  corpus-tools:
+    build:
+      context: .
+      dockerfile: rag_app/Dockerfile
+      target: development
+    container_name: bot-seguridad-corpus-tools
+    volumes:
+      - ./data/chroma_db:/app/data/chroma_db
+      - ./data/corpora:/app/data/corpora
+      - ./data/logs:/app/data/logs
+      - ./rag_app:/app/rag_app
+      - backend_venv:/app/rag_app/.venv
+    env_file:
+      - .env
+    environment:
+      - CHROMA_DB_PATH=/app/data/chroma_db/${CORPUS_VERSION:-v1}
+      - CORPUS_STORAGE_PATH=/app/data/corpora
+      - CORPUS_VERSION=${CORPUS_VERSION:-v1}
+    networks:
+      - bot-network
+    profiles:
+      - tools
+    command: ["sleep", "infinity"]
+
+networks:
+  bot-network:
+    driver: bridge
+
+volumes:
+  backend_venv:
+  caddy_data:
+  caddy_config:
