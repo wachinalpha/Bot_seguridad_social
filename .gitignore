@@ -12,6 +12,12 @@ rag_app/.env
 
 Bot_seguridad_social.code-workspace
 
+
+#vps files
+docker-compose.vps.yml
+
+#cady file
+Caddyfile
 # Project specific - Data and documents
 data/
 !data/
