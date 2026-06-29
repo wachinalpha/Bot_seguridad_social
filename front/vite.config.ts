@@ -8,6 +8,12 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 5173,
         host: '0.0.0.0',
+        allowedHosts: [
+          'botseguridadsocial.tallerdedatospopulares.com.ar',
+          'localhost',
+          '127.0.0.1',
+          'frontend'
+        ],
       },
       plugins: [react()],
       define: {

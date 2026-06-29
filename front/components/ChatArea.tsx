@@ -8,6 +8,39 @@ interface ChatAreaProps {
   isLoading: boolean;
 }
 
+const renderMessageText = (text: string, role: MessageRole): React.ReactNode => {
+  const markdownLinkRegex = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g;
+  const nodes: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = markdownLinkRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index));
+    }
+
+    const [, label, url] = match;
+    nodes.push(
+      <a
+        key={`${url}-${match.index}`}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={role === MessageRole.USER ? 'underline decoration-white/70 underline-offset-2' : 'text-brand-green font-semibold underline underline-offset-2'}
+      >
+        {label}
+      </a>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes.length > 0 ? nodes : text;
+};
+
 export const ChatArea: React.FC<ChatAreaProps> = ({ messages, onSendMessage, isLoading }) => {
   const [inputText, setInputText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -45,7 +78,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ messages, onSendMessage, isL
                     ? 'bg-brand-navy text-white border-brand-navy rounded-tr-none'
                     : 'bg-white border-slate-200 text-slate-800 rounded-tl-none'
                     }`}>
-                    <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{message.text}</p>
+                    <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{renderMessageText(message.text, message.role)}</p>
                   </div>
 
 

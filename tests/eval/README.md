@@ -61,6 +61,6 @@ tests/eval/
 | Hit Rate | ¿El doc correcto está en el top-3? | > 90% |
 | Precision@k | % de docs recuperados que son relevantes | > 50% |
 | NDCG@k | Hit rate ponderado por posición | > 80% |
-| Citation Presence | ¿La respuesta tiene citas `[DOC_ID:Lx-Ly]`? | > 90% |
+| Citation Presence | ¿La respuesta tiene citas `[Titulo del documento](URL)`? | > 90% |
 | Keyword Coverage | % de keywords del ground truth en la respuesta | > 75% |
 | Refusal Accuracy | ¿Rechaza cuando debe y responde cuando debe? | 100% |

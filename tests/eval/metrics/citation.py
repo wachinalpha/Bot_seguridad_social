@@ -2,14 +2,14 @@
 Citation quality metrics (deterministic, regex-based).
 
 Checks whether the answer includes properly-formatted citations
-as required by the system prompt: [DOC_ID:Lx-Ly]
+as required by the system prompt: [Document title](URL)
 """
 
 import re
 from typing import List
 
-# Matches citations like [ley_24714:L10-L25] or [ley_1602-2009:L7]
-CITATION_PATTERN = re.compile(r'\[[\w_\-]+:L\d+(?:-L\d+)?\]')
+# Matches citations like [Ley 24241](https://example.com/ley24241)
+CITATION_PATTERN = re.compile(r'\[[^\]\n]+\]\(https?://[^\s)]+\)')
 
 # Refusal phrases defined in the system prompt
 REFUSAL_PHRASES = [

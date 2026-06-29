@@ -75,10 +75,14 @@ def build_task_prompt(query: str, law_docs: Sequence[LawDocument]) -> tuple[str,
             continue
 
         text = Path(law_doc.file_path).read_text(encoding="utf-8")
-        doc_id = law_doc.id
         titulo = law_doc.titulo
+        url = law_doc.url or "URL no disponible"
         context_parts.append(
-            f"--- DOCUMENTO: {titulo} (ID: {doc_id}) ---\n{text}\n--- FIN: {doc_id} ---"
+            f"--- DOCUMENTO ---\n"
+            f"TITULO: {titulo}\n"
+            f"URL: {url}\n"
+            f"CONTENIDO:\n{text}\n"
+            f"--- FIN DOCUMENTO: {titulo} ---"
         )
 
     if not context_parts:
